@@ -1,0 +1,35 @@
+# Dépendances (réinstallées par composer install)
+/vendor/
+composer.phar
+
+# Secrets et configuration locale : seul .env.example est versionné
+/.env
+/.env.*
+!/.env.example
+
+# Éditeurs et systèmes
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# Journaux, cache, fichiers temporaires
+/storage/logs/*.log
+/storage/cache/
+*.log
+*.tmp
+
+# Sauvegardes de la BDD (US-82) : jamais dans Git, elles contiennent des données.
+# Les scripts de database/migrations/ et database/seed.sql restent versionnés.
+/backups/
+*.dump
+*.sql.gz
+
+# Outils de test et de qualité (si ajoutés plus tard)
+/.phpunit.cache/
+.phpunit.result.cache
+/coverage/
+.php-cs-fixer.cache
