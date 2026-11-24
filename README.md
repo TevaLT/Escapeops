@@ -22,16 +22,21 @@ Détail et cas de refus : [CHOIX_REGLES.md](CHOIX_REGLES.md).
 
 Tout le code est dans [starter-kit/](starter-kit/). Installation, comptes de test et routes : **[starter-kit/README.md](starter-kit/README.md)**.
 
-En résumé :
+En résumé, pour un premier lancement :
 
 ```powershell
 cd starter-kit
 composer install
 Copy-Item .env.example .env
-docker start escapeops-db      # ou docker run … la première fois (voir starter-kit/README.md)
+docker run -d --name escapeops-db -p 3306:3306 `
+  -e MYSQL_ROOT_PASSWORD=rootpass -e MYSQL_DATABASE=escapeops `
+  -e MYSQL_USER=escapeops -e MYSQL_PASSWORD=escapeops `
+  -v escapeops-data:/var/lib/mysql mysql:8.4
 composer db:reset
 composer serve                 # http://127.0.0.1:8080
 ```
+
+Les fois suivantes, le conteneur existe déjà : `docker start escapeops-db` suffit, puis `composer serve`.
 
 ## Documents du projet
 
