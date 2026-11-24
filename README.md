@@ -28,7 +28,7 @@ En résumé, pour un premier lancement :
 cd starter-kit
 composer install
 Copy-Item .env.example .env
-docker run -d --name escapeops-db -p 3306:3306 `
+docker run -d --name escapeops-db -p 127.0.0.1:3306:3306 `
   -e MYSQL_ROOT_PASSWORD=rootpass -e MYSQL_DATABASE=escapeops `
   -e MYSQL_USER=escapeops -e MYSQL_PASSWORD=escapeops `
   -v escapeops-data:/var/lib/mysql mysql:8.4
@@ -37,6 +37,8 @@ composer serve                 # http://127.0.0.1:8080
 ```
 
 Les fois suivantes, le conteneur existe déjà : `docker start escapeops-db` suffit, puis `composer serve`.
+
+> ⚠ Les mots de passe ci-dessus (`rootpass`, `escapeops`) et ceux des comptes de test sont des **identifiants de développement**, fictifs, publiés pour la recette. Ne jamais les réutiliser en production. Les vrais paramètres se trouvent dans `.env`, ignoré par Git. `127.0.0.1:3306` limite l'accès à MySQL à ta propre machine.
 
 ## Documents du projet
 
