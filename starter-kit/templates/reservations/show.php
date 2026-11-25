@@ -29,7 +29,13 @@ require __DIR__ . '/../partials/header.php';
     <ul class="facts">
         <li>Groupe : <?= e($reservation['nom_groupe']) ?> (<?= (int) $reservation['nb_joueurs'] ?> joueurs)</li>
         <li>État : <span class="badge <?= e($classes[$reservation['etat']] ?? '') ?>"><?= e($libelles[$reservation['etat']] ?? $reservation['etat']) ?></span></li>
+        <?php if ($reservation['code_suivi'] !== null): ?>
+            <li>Code de suivi : <strong><?= e(\App\Domain\TrackingCode::format($reservation['code_suivi'])) ?></strong></li>
+        <?php endif; ?>
     </ul>
+    <?php if ($reservation['code_suivi'] !== null): ?>
+        <p class="empty">Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur <a href="/mes-reservations">Mes réservations</a>.</p>
+    <?php endif; ?>
 
     <?php if ($erreur !== null): ?>
         <p class="alert alert-error" role="alert"><?= e($erreur) ?></p>

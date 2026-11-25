@@ -106,7 +106,7 @@ function testDatabase(): Medoo
          CREATE TABLE reservation (id_reservation INTEGER PRIMARY KEY AUTOINCREMENT, id_session INTEGER NOT NULL REFERENCES session (id_session),
             nom_groupe TEXT NOT NULL, contact TEXT NOT NULL, nb_joueurs INTEGER NOT NULL CHECK (nb_joueurs > 0),
             statut TEXT NOT NULL DEFAULT 'EN_ATTENTE', a_recontacter INTEGER NOT NULL DEFAULT 0,
-            date_creation TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, date_expiration TEXT NULL, jeton TEXT NULL UNIQUE);
+            date_creation TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, date_expiration TEXT NULL, jeton TEXT NULL UNIQUE, code_suivi TEXT NULL);
          CREATE TABLE incident (id_incident INTEGER PRIMARY KEY AUTOINCREMENT, id_salle INTEGER NOT NULL REFERENCES salle (id_salle),
             id_equipement INTEGER NULL REFERENCES equipement (id_equipement), id_session INTEGER NULL REFERENCES session (id_session),
             id_declarant INTEGER NOT NULL REFERENCES utilisateur (id_utilisateur), description TEXT NOT NULL,

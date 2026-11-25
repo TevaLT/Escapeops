@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Domain\NotFoundException;
 use App\Domain\ReservationStateException;
 use App\Domain\SlotUnavailableException;
+use App\Domain\TrackingCode;
 use App\Domain\ValidationException;
 use App\Http\ViewRenderer;
 use App\Security\Flash;
@@ -56,9 +57,11 @@ final class ReservationController
         }
 
         $this->flash->success(sprintf(
-            'Option posée pour « %s » jusqu\'à %s. Confirmez-la avant cette heure, sinon le créneau sera libéré.',
+            'Option posée pour « %s » jusqu\'à %s. Confirmez-la avant cette heure, sinon le créneau sera libéré. '
+            . 'Votre code de suivi : %s.',
             trim($values['nom_groupe']),
-            heure_fr($option['date_expiration'])
+            heure_fr($option['date_expiration']),
+            TrackingCode::format($option['code_suivi'])
         ));
 
         return $this->redirect($response, '/reservations/' . $option['jeton'])->withHeader('Referrer-Policy', 'no-referrer');

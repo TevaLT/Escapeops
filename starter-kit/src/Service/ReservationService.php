@@ -10,6 +10,7 @@ use App\Domain\ReservationOption;
 use App\Domain\ReservationStateException;
 use App\Domain\SlotAvailability;
 use App\Domain\SlotUnavailableException;
+use App\Domain\TrackingCode;
 use App\Domain\ValidationException;
 use App\Repository\ReservationRepository;
 use App\Repository\SessionRepository;
@@ -86,9 +87,10 @@ final class ReservationService
 
             $expiresAt = ReservationOption::expiresAt($now);
             $token = bin2hex(random_bytes(16));
-            $this->reservations->insert($sessionId, $group, $contact, $players, ReservationOption::EN_ATTENTE, $now, $expiresAt, $token);
+            $code = TrackingCode::generate();   // pour retrouver ses réservations sur « Mes réservations »
+            $this->reservations->insert($sessionId, $group, $contact, $players, ReservationOption::EN_ATTENTE, $now, $expiresAt, $token, $code);
 
-            return $info + ['jeton' => $token, 'date_expiration' => $expiresAt->format('Y-m-d H:i:s')];
+            return $info + ['jeton' => $token, 'code_suivi' => $code, 'date_expiration' => $expiresAt->format('Y-m-d H:i:s')];
         });
     }
 

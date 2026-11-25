@@ -36,7 +36,7 @@ Les Archives Obscures est une petite société qui exploite **trois salles d'esc
 
 | Acteur | Accès | Capacités principales |
 |---|---|---|
-| **Client (public)** | Sans compte, avec un contact fictif | Consulter les salles et créneaux, poser une option, confirmer ou annuler sa réservation |
+| **Client (public)** | Sans compte, avec un contact fictif | Consulter les salles et créneaux, poser une option, confirmer ou annuler sa réservation, retrouver ses réservations (« Mes réservations » : contact + code de suivi, sans mot de passe) |
 | **Game master** | Compte, rôle `GAME_MASTER` | Consulter ses sessions, remplir la checklist d'ouverture, démarrer et terminer une session, déclarer un incident |
 | **Responsable** | Compte, rôle `RESPONSABLE` | Créer et modifier les sessions, affecter les game masters, gérer les réservations et incidents, consulter le tableau de bord |
 | **Administrateur** | Compte, rôle `ADMIN` | Gérer les comptes, les salles et les équipements, avec en plus tous les droits du responsable |
@@ -142,7 +142,7 @@ Le socle SQL est conçu pour accueillir ces extensions : le trigger d'historique
 | `user` | id, nom, e-mail, mot de passe haché, rôle (`ADMIN` / `RESPONSABLE` / `GAME_MASTER`) |
 | `room` | id, nom, thème, durée, capacité min et max, temps de remise en état |
 | `session` | id, room_id, game_master_id (peut être vide), début, fin, état |
-| `reservation` | id, session_id, nom et contact du groupe, nombre de joueurs, état, `expires_at`, date de création, indicateur « à recontacter », jeton du lien de suivi (confirmer ou annuler sans compte) |
+| `reservation` | id, session_id, nom et contact du groupe, nombre de joueurs, état, `expires_at`, date de création, indicateur « à recontacter », jeton du lien de suivi (confirmer ou annuler sans compte), code de suivi (« Mes réservations ») |
 | `equipment` | id, nom, critique (booléen), statut |
 | `room_equipment` | room_id, equipment_id (table d'association N–N) |
 | `incident` | id, room_id, equipment_id, description, bloquant, statut, dates de déclaration et de résolution |
