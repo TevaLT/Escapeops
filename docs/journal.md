@@ -363,3 +363,14 @@ Problèmes rencontrés :
   - le client mysql sortait « Énigme » en latin1 : --default-character-set=utf8mb4
 Base remise à zéro ensuite (composer db:reset)
 ```
+
+### Bilan de mercredi 25/11
+
+```text
+Fait : règles E1/E5/E10, évolution EV-TEV-01 (réponse envoyée à la cliente, issue #8),
+  comptes GM et « Mes réservations », API JSON (US-51 à 55), SQL avancé (US-60 à 65) avec preuves
+Tests : composer test vert (14 suites)
+Git : PR #1, #2, #3 fusionnées ; branche docs/preuves-ev-tev-01 poussée
+Notion : doublons supprimés, 68 tickets (52 faits, 16 à faire)
+Demain : fusionner la PR, fermer l'issue #8, incident US-72, puis extension E2 ou E9
+```
