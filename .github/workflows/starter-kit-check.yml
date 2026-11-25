@@ -1,0 +1,116 @@
+name: Starter kit check
+
+on:
+  push:
+    paths:
+      - "starter-kit/**"
+      - ".github/workflows/starter-kit-check.yml"
+  pull_request:
+    paths:
+      - "starter-kit/**"
+      - ".github/workflows/starter-kit-check.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: escapeops
+          MYSQL_USER: bts
+          MYSQL_PASSWORD: btspass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -prootpass"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=15
+
+    defaults:
+      run:
+        working-directory: starter-kit
+
+    env:
+      APP_ENV: test
+      APP_DEBUG: "true"
+      DB_TYPE: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: escapeops
+      DB_USER: bts
+      DB_PASSWORD: btspass
+      DB_CHARSET: utf8mb4
+      APP_TIMEZONE: Europe/Paris
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: PHP syntax
+        run: |
+          find public config routes src templates tests bin -name "*.php" -print0 \
+            | xargs -0 -n1 php -l
+
+      - name: Tests contractuels JSON sans BDD
+        run: composer test
+
+      - name: Initialiser MySQL (migrations + jeu de données)
+        run: composer db:reset
+
+      - name: Tester routes HTML / API avec le vrai SGBD
+        run: |
+          composer serve > /tmp/server.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8080/api/health > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl -fsS http://127.0.0.1:8080/ | grep -q 'Le Cabinet des Ombres'
+          curl -fsS http://127.0.0.1:8080/salles/1 | grep -q 'Prochains créneaux'
+          curl -fsS http://127.0.0.1:8080/api/rooms | grep -q 'Le Laboratoire Interdit'
+          curl -fsS http://127.0.0.1:8080/api/rooms/2 | grep -q '"sessions"'
+
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/rooms/99999)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/salles/99999)" = "404"
+
+          # Épic 1 : connexion, droits et CSRF
+          curl -fsS http://127.0.0.1:8080/connexion | grep -q 'name="_csrf"'
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/gestion)" = "302"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' -d 'email=camille@escapeops.test&mot_de_passe=x' http://127.0.0.1:8080/connexion)" = "403"
+
+          # Épic 2 : réservation publique, zones protégées
+          # (session 7 : demain, sans réservation → toujours libre, quelle que soit l'heure du run)
+          curl -fsS http://127.0.0.1:8080/sessions/7/reserver | grep -q 'Poser une option de 15 minutes'
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/sessions/99999/reserver)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/gestion/sessions)" = "302"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/espace/incidents)" = "302"
+
+          # Épic 3 / E1 : l'option du seed (posée il y a 5 min, 15 min de validité) bloque la session 5
+          curl -fsS http://127.0.0.1:8080/sessions/5/reserver | grep -q 'en option jusqu'
+          curl -fsS http://127.0.0.1:8080/reservations/e5ca9e0900000000000000000000a003 | grep -q 'Option en cours'
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/reservations/00000000000000000000000000000000)" = "404"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8080/reservations/e5ca9e0900000000000000000000a003/confirmer)" = "403"
+
+      - name: Logs en cas d'échec
+        if: failure()
+        run: cat /tmp/server.log || true

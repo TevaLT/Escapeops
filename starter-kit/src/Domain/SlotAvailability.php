@@ -10,8 +10,8 @@ use DateTimeImmutable;
  * Décide si un créneau (session) est réservable par le public.
  *
  * Invariants du socle : pas de session passée, annulée ou déjà confirmée.
- * Prépare E1 : une option EN_ATTENTE encore valide bloque le créneau,
- * une option expirée ne bloque plus rien.
+ * E1 : une option EN_ATTENTE encore valide bloque le créneau, une option expirée ne bloque
+ * plus rien (recalculé à chaque requête, voir ReservationOption).
  */
 final class SlotAvailability
 {
@@ -37,8 +37,8 @@ final class SlotAvailability
             return self::COMPLET;
         }
 
-        $option = $session['option_expire_le'] ?? null;
-        if ($option !== null && new DateTimeImmutable($option) > $now) {
+        // E1 (US-31, US-32) : l'option la plus tardive encore active bloque ; expirée, elle ne compte plus.
+        if (ReservationOption::isActive($session['option_expire_le'] ?? null, $now)) {
             return self::EN_OPTION;
         }
 

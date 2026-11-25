@@ -25,7 +25,14 @@
     "test": [
       "php tests/http-input.php",
       "php tests/slot-availability.php",
-      "php tests/auth-roles.php"
+      "php tests/auth-roles.php",
+      "php tests/sessions.php",
+      "php tests/reservations.php",
+      "php tests/game-master-conflicts.php",
+      "php tests/checklist.php",
+      "php tests/evolution-ev-tev-01.php",
+      "php tests/rooms-equipment.php",
+      "php tests/incidents-dashboard.php"
     ]
   }
 }

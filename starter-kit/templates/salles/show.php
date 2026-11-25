@@ -27,7 +27,7 @@ require __DIR__ . '/../partials/header.php';
     <p class="empty">Aucun créneau publié pour cette salle.</p>
 <?php else: ?>
     <table>
-        <thead><tr><th>Créneau</th><th>Fin</th><th>Disponibilité</th></tr></thead>
+        <thead><tr><th>Créneau</th><th>Fin</th><th>Disponibilité</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($salle['sessions'] as $session): ?>
             <tr>
@@ -35,8 +35,13 @@ require __DIR__ . '/../partials/header.php';
                 <td><?= e(heure_fr($session['fin'])) ?></td>
                 <td>
                     <span class="badge badge-<?= e(strtolower($session['disponibilite'])) ?>">
-                        <?= e($libelles[$session['disponibilite']] ?? $session['disponibilite']) ?>
+                        <?= e($libelles[$session['disponibilite']] ?? $session['disponibilite']) ?><?php if ($session['optionJusqua'] !== null): ?> jusqu'à <?= e(heure_fr($session['optionJusqua'])) ?><?php endif; ?>
                     </span>
+                </td>
+                <td>
+                    <?php if ($session['disponibilite'] === 'LIBRE'): ?>
+                        <a class="button" href="/sessions/<?= (int) $session['id'] ?>/reserver">Réserver</a>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>

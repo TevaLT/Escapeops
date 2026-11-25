@@ -44,11 +44,13 @@ INSERT INTO session (id_session, id_salle, id_game_master, date_debut, date_fin,
 (7, 3, 4, CURDATE() + INTERVAL 1 DAY + INTERVAL 14 HOUR, CURDATE() + INTERVAL 1 DAY + INTERVAL 915 MINUTE, 'PRETE'),
 (8, 2, NULL, CURDATE() + INTERVAL 16 HOUR, CURDATE() + INTERVAL 17 HOUR, 'ANNULEE');
 
-INSERT INTO reservation (id_reservation, id_session, nom_groupe, contact, nb_joueurs, statut, date_creation, date_expiration) VALUES
-(1, 1, 'Team Énigme', 'team.enigme@example.test', 5, 'CONFIRMEE', NOW() - INTERVAL 3 DAY, NULL),
-(2, 2, 'Les Curieux', '06 00 00 00 01', 6, 'CONFIRMEE', NOW() - INTERVAL 2 DAY, NULL),
-(3, 5, 'Famille Martin', 'martin@example.test', 4, 'EN_ATTENTE', NOW() - INTERVAL 5 MINUTE, NOW() + INTERVAL 10 MINUTE),
-(4, 8, 'Groupe Dupont', '06 00 00 00 02', 3, 'ANNULEE', NOW() - INTERVAL 4 DAY, NULL);
+-- E1 : chaque groupe reçoit un lien secret /reservations/{jeton} pour confirmer ou annuler.
+-- Jetons fixes pour la démo : l'option de la famille Martin se consulte sur /reservations/e5ca9e0900000000000000000000a003
+INSERT INTO reservation (id_reservation, id_session, nom_groupe, contact, nb_joueurs, statut, date_creation, date_expiration, jeton) VALUES
+(1, 1, 'Team Énigme', 'team.enigme@example.test', 5, 'CONFIRMEE', NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY + INTERVAL 15 MINUTE, 'e5ca9e0900000000000000000000a001'),
+(2, 2, 'Les Curieux', '06 00 00 00 01', 6, 'CONFIRMEE', NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY + INTERVAL 15 MINUTE, 'e5ca9e0900000000000000000000a002'),
+(3, 5, 'Famille Martin', 'martin@example.test', 4, 'EN_ATTENTE', NOW() - INTERVAL 5 MINUTE, NOW() + INTERVAL 10 MINUTE, 'e5ca9e0900000000000000000000a003'),
+(4, 8, 'Groupe Dupont', '06 00 00 00 02', 3, 'ANNULEE', NOW() - INTERVAL 4 DAY, NOW() - INTERVAL 4 DAY + INTERVAL 15 MINUTE, 'e5ca9e0900000000000000000000a004');
 
 INSERT INTO incident (id_incident, id_salle, id_equipement, id_session, id_declarant, description, gravite, est_bloquant, statut, date_declaration, date_resolution) VALUES
 (1, 2, 3, NULL, 4, 'Le projecteur d''ambiance ne s''allume plus.', 'MINEURE', FALSE, 'OUVERT', NOW() - INTERVAL 2 HOUR, NULL),

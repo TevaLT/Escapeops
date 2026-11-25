@@ -159,3 +159,53 @@ button.button { border: 0; cursor: pointer; font-size: 1rem; }
 
 .alert { padding: .75rem 1rem; border-radius: .5rem; font-family: system-ui, sans-serif; }
 .alert-error { border: 1px solid var(--ko); color: var(--ko); }
+
+/* Planning des sessions (US-22) */
+.alert-success { border: 1px solid var(--ok); color: var(--ok); }
+.alert p { margin: .2rem 0; }
+.field-error { color: var(--ko); font-size: .85rem; margin: 0; }
+.form select {
+    padding: .6rem .75rem;
+    border-radius: .5rem;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 1rem;
+}
+.form input[type="datetime-local"] { color-scheme: dark; }
+.badge-statut-prevue, .badge-statut-terminee { color: var(--muted); }
+.badge-statut-prete { color: var(--ok); }
+.badge-statut-en_cours { color: var(--warn); }
+.badge-statut-annulee, .badge-statut-interrompue { color: var(--ko); }
+
+/* Épic 2 : filtres, sous-menu, actions, formulaires */
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+    margin: 0 0 1.5rem;
+    font-family: system-ui, sans-serif;
+}
+.filters label { display: flex; flex-direction: column; gap: .3rem; color: var(--muted); font-size: .85rem; }
+.filters select, .filters input {
+    padding: .5rem .6rem;
+    border-radius: .5rem;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text);
+    color-scheme: dark;
+}
+.subnav { display: flex; flex-wrap: wrap; gap: 1.25rem; margin: 0 0 2rem; font-family: system-ui, sans-serif; }
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin: 1rem 0; }
+.button-danger { background: var(--ko); color: #1a0e0c; }
+.form textarea {
+    padding: .6rem .75rem;
+    border-radius: .5rem;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text);
+    font: inherit;
+}
+.form .check { display: flex; gap: .5rem; align-items: center; color: var(--text); }
+.card h3 { margin: .25rem 0; }

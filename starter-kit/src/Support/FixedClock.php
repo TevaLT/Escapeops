@@ -25,4 +25,9 @@ final class FixedClock implements Clock
     {
         $this->now = $this->now->modify($interval);
     }
+
+    public function set(DateTimeImmutable $now): void
+    {
+        $this->now = $now;
+    }
 }

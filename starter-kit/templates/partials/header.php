@@ -2,6 +2,7 @@
 /** @var string $titre */
 /** @var \App\Domain\CurrentUser|null $utilisateurConnecte */
 /** @var \App\Security\Csrf $csrf */
+/** @var list<array{type: string, message: string}> $flashes */
 ?>
 <!doctype html>
 <html lang="fr">
@@ -18,6 +19,7 @@
         <a href="/">Nos salles</a>
         <?php if ($utilisateurConnecte !== null): ?>
             <a href="/espace">Mon espace</a>
+            <a href="/espace/incidents">Incidents</a>
             <?php if (\App\Domain\Authorization::canManagePlanning($utilisateurConnecte)): ?>
                 <a href="/gestion">Gestion</a>
             <?php endif; ?>
@@ -32,3 +34,6 @@
     </nav>
 </header>
 <main>
+<?php foreach ($flashes ?? [] as $flash): ?>
+    <p class="alert alert-<?= e($flash['type']) ?>" role="status"><?= e($flash['message']) ?></p>
+<?php endforeach; ?>

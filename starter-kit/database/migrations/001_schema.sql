@@ -61,7 +61,8 @@ CREATE TABLE session (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- « Concerner » (session 0,n — réservation 1,1)
--- E1 : une option EN_ATTENTE expire à date_expiration.
+-- E1 : une option EN_ATTENTE expire à date_expiration (pose + 15 min).
+-- jeton : lien secret remis au groupe (sans compte) pour confirmer ou annuler sa réservation.
 -- RG2 (une seule réservation CONFIRMEE par session) est contrôlée dans le service.
 CREATE TABLE reservation (
     id_reservation INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -73,6 +74,8 @@ CREATE TABLE reservation (
     a_recontacter BOOLEAN NOT NULL DEFAULT FALSE,
     date_creation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_expiration DATETIME NULL,
+    jeton CHAR(32) NULL,
+    CONSTRAINT uq_reservation_jeton UNIQUE (jeton),
     CONSTRAINT fk_reservation_session FOREIGN KEY (id_session) REFERENCES session (id_session),
     CONSTRAINT ck_reservation_joueurs CHECK (nb_joueurs > 0),
     CONSTRAINT ck_reservation_statut CHECK (statut IN ('EN_ATTENTE', 'CONFIRMEE', 'ANNULEE')),
