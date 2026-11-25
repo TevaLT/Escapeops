@@ -1,0 +1,16 @@
+Scénario de recette:    1.Un responsable crée les sessions du jour, 
+                        2.le public réserve un créneau, 
+                        3.un game master prépare la salle
+
+
+1. Je suis un client. Je veux réserver une salle mais j'hésite encore. Comme j'ai posé 
+une option de réservation, l'application doit garder mon créneau réserver pendant 15 minutes.
+
+
+2. Je suis le gérant de Les Archives Obscures. Je veux plannifier les sessions. Comme un Game master 
+ne peut pas être affecter à 2 session sur le même créneau, l'application doit bloquer l'affectation 
+d'un game master sur le même créneau et peut créer une session sans affectation.
+
+
+3. Je suis un Game master. Je veux valider l'ouverture d'une salle. Commme je dois valider une checklist,
+l'application doit  empecher l'ouverture d'une salle avant que la checklist soit entièrement valider.

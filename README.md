@@ -5,8 +5,8 @@ Projet BTS SIO SLAM · semaine du 23 au 27 novembre 2026 · PHP 8.2+, Slim 4, Me
 
 ## Ce que fait l'application
 
-- **Public** : consulter les salles et leurs créneaux, réserver pour un groupe.
-- **Responsable / admin** : gérer le planning, les salles et les équipements, suivre le tableau de bord d'exploitation.
+- **Public** : consulter les salles et leurs créneaux, poser une option de 15 minutes pour un groupe, puis la confirmer ou l'annuler depuis un lien personnel.
+- **Responsable / admin** : gérer le planning et l'affectation des game masters, les salles et les équipements, suivre le tableau de bord d'exploitation.
 - **Game master** : animer ses sessions, remplir la checklist d'ouverture, déclarer des incidents.
 
 ### Règles métier choisies
@@ -62,8 +62,10 @@ Ressources du cadre de projet : [docs/](docs/) (guides de la semaine), [sujets/]
 |---|---|---|
 | Lundi 23 | 0 — Socle technique (BDD, vitrine, API salles) | ✅ |
 | Mardi 24 | 1 — Authentification et rôles | ✅ |
-| Mardi 24 | 2 — Socle métier (sessions, réservations, tableau de bord) | 🟡 en cours |
-| Mercredi 25 | 3 — Règles E1, E5, E10 · 4 — API JSON | à faire |
+| Mardi 24 | 2 — Socle métier (sessions, réservations, tableau de bord) | ✅ |
+| Mercredi 25 (matin) | 3 — Règles E1, E5, E10, avec leurs refus et leurs tests | ✅ |
+| Mercredi 25 | 6 — Évolution client EV-TEV-01 « checklist et game master obligatoires » (issue #8) : analyse, code, tests | ✅ |
+| Mercredi 25 (après-midi) | 4 — API JSON (US-51 à US-55) | à faire |
 | Jeudi 26 | 5 — SQL avancé (vues, procédure, trigger) · 6 — Évolution et incident | à faire |
 | Vendredi 27 | 7 — Livraison et démonstration | à faire |
 

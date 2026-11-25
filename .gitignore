@@ -1,0 +1,21 @@
+# Règles de l'application : voir starter-kit/.gitignore
+
+# Sauvegardes automatiques et verrous des logiciels (Looping, LibreOffice, Office)
+*.lo1
+.~lock.*#
+~$*
+
+# Éditeurs et systèmes
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets, au cas où un .env serait créé hors du starter-kit
+.env
+.env.*
+!.env.example
+
+# Documents réservés à l'enseignant (cartes d'incident et d'évolution, grilles) : jamais dans le dépôt
+/enseignant/
