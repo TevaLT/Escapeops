@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Controller\Api\IncidentApiController;
+use App\Controller\Api\ReservationApiController;
+use App\Controller\Api\SessionApiController;
 use App\Controller\AuthController;
 use App\Controller\ClientController;
 use App\Security\ClientAccess;
@@ -91,13 +94,12 @@ $equipmentService = new EquipmentService($equipmentRepository, $roomRepository, 
 $incidentService = new IncidentService($incidentRepository, $roomRepository, $equipmentRepository, $sessionRepository, $clock);
 $dashboardService = new DashboardService(new DashboardRepository($database), $incidentRepository, $sessionService, $clock);
 
+// Un seul ReservationService pour le site et l'API (US-54) : la règle E1 n'existe qu'à un endroit.
+$reservationService = new ReservationService($sessionRepository, $reservationRepository, $clock);
+
 $controllers = [
     'rooms' => new RoomController($roomService, $renderer),
-    'reservations' => new ReservationController(
-        new ReservationService($sessionRepository, $reservationRepository, $clock),
-        $flash,
-        $renderer
-    ),
+    'reservations' => new ReservationController($reservationService, $flash, $renderer),
     'auth' => new AuthController(new AuthService($users, $auth), $auth, $renderer),
     'staff' => new StaffController($auth, $sessionService, $dashboardService, $renderer),
     'sessions' => new SessionController($sessionService, $auth, $flash, $renderer),
@@ -110,6 +112,11 @@ $controllers = [
         $flash,
         $renderer
     ),
+
+    // API JSON (US-51 à US-54) : mêmes services que le site, aucune règle dans les contrôleurs
+    'apiSessions' => new SessionApiController($sessionService),
+    'apiReservations' => new ReservationApiController($reservationService),
+    'apiIncidents' => new IncidentApiController($incidentService, $auth),
 ];
 
 // Slim exécute en premier le dernier middleware ajouté. Ordre réel d'une requête :
@@ -125,6 +132,6 @@ $app->addErrorMiddleware(
 );
 
 (require $root . '/routes/web.php')($app, $controllers, $auth, $renderer);
-(require $root . '/routes/api.php')($app, $controllers);
+(require $root . '/routes/api.php')($app, $controllers, $auth, $renderer);
 
 $app->run();
