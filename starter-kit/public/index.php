@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Controller\AuthController;
+use App\Controller\ClientController;
+use App\Security\ClientAccess;
+use App\Service\ClientAccessService;
 use App\Controller\EquipmentController;
 use App\Controller\GameMasterController;
 use App\Controller\IncidentController;
@@ -101,7 +104,12 @@ $controllers = [
     'roomAdmin' => new RoomAdminController($roomService, $equipmentService, $auth, $flash, $renderer),
     'equipment' => new EquipmentController($equipmentService, $auth, $flash, $renderer),
     'incidents' => new IncidentController($incidentService, $auth, $flash, $renderer),
-    'gameMasters' => new GameMasterController(new GameMasterService($users, $sessionRepository, $clock), $renderer),
+    'gameMasters' => new GameMasterController(new GameMasterService($users, $sessionRepository, $clock), $auth, $flash, $renderer),
+    'clients' => new ClientController(
+        new ClientAccessService($reservationRepository, new ClientAccess($session), $clock),
+        $flash,
+        $renderer
+    ),
 ];
 
 // Slim exécute en premier le dernier middleware ajouté. Ordre réel d'une requête :

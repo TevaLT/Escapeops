@@ -32,6 +32,11 @@ return static function (App $app, array $controllers, Auth $auth, ViewRenderer $
     $app->post('/reservations/{jeton:[0-9a-f]{32}}/confirmer', [$c['reservations'], 'confirm']);
     $app->post('/reservations/{jeton:[0-9a-f]{32}}/annuler', [$c['reservations'], 'cancel']);
 
+    // « Mes réservations » : le client, sans compte, se reconnaît avec son contact et son code de suivi
+    $app->get('/mes-reservations', [$c['clients'], 'index']);
+    $app->post('/mes-reservations/connexion', [$c['clients'], 'login']);
+    $app->post('/mes-reservations/deconnexion', [$c['clients'], 'logout']);
+
     // Authentification (US-10)
     $app->get('/connexion', [$c['auth'], 'showLogin']);
     $app->post('/connexion', [$c['auth'], 'login']);
@@ -83,6 +88,9 @@ return static function (App $app, array $controllers, Auth $auth, ViewRenderer $
         // Fiches game master (US-24)
         $group->get('/game-masters', [$c['gameMasters'], 'index']);
         $group->get('/game-masters/{id:[0-9]+}', [$c['gameMasters'], 'show']);
+        // Ajout d'un game master (compte GAME_MASTER uniquement)
+        $group->get('/game-masters/nouveau', [$c['gameMasters'], 'create']);
+        $group->post('/game-masters', [$c['gameMasters'], 'store']);
 
         // Résolution d'un incident (US-26)
         $group->post('/incidents/{id:[0-9]+}/resoudre', [$c['incidents'], 'resolve']);

@@ -21,9 +21,28 @@ final class Authorization
     /** Tout le personnel connecté. */
     public const STAFF = [Role::ADMIN, Role::RESPONSABLE, Role::GAME_MASTER];
 
+    /**
+     * Créer un compte game master : le responsable (qui constitue son équipe) et l'admin.
+     * Seuls des comptes GAME_MASTER peuvent être créés ainsi : jamais un responsable ni un admin.
+     */
+    public const GAME_MASTER_RECRUITERS = [Role::ADMIN, Role::RESPONSABLE];
+
     public static function canManagePlanning(?CurrentUser $user): bool
     {
         return $user !== null && $user->hasRole(...self::PLANNING_MANAGERS);
+    }
+
+    public static function canCreateGameMaster(?CurrentUser $user): bool
+    {
+        return $user !== null && $user->hasRole(...self::GAME_MASTER_RECRUITERS);
+    }
+
+    /** @throws AccessDeniedException */
+    public static function denyUnlessCanCreateGameMaster(?CurrentUser $user): void
+    {
+        if (!self::canCreateGameMaster($user)) {
+            throw new AccessDeniedException('Seuls un responsable ou un administrateur peuvent ajouter un game master.');
+        }
     }
 
     public static function canManageRooms(?CurrentUser $user): bool

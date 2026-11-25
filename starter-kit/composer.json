@@ -31,6 +31,8 @@
       "php tests/game-master-conflicts.php",
       "php tests/checklist.php",
       "php tests/evolution-ev-tev-01.php",
+      "php tests/game-master-accounts.php",
+      "php tests/client-access.php",
       "php tests/rooms-equipment.php",
       "php tests/incidents-dashboard.php"
     ]

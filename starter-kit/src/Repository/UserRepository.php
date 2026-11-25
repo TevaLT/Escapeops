@@ -50,4 +50,23 @@ final class UserRepository
     {
         $this->database->update('utilisateur', ['mot_de_passe' => $hash], ['id_utilisateur' => $id]);
     }
+
+    public function emailExists(string $email): bool
+    {
+        return $this->database->has('utilisateur', ['email' => $email]);
+    }
+
+    /** Crée un compte ; $hash est déjà le résultat de password_hash (jamais de mot de passe en clair ici). */
+    public function insert(string $lastName, string $firstName, string $email, string $hash, string $role): int
+    {
+        $this->database->insert('utilisateur', [
+            'nom' => $lastName,
+            'prenom' => $firstName,
+            'email' => $email,
+            'mot_de_passe' => $hash,
+            'role' => $role,
+        ]);
+
+        return (int) $this->database->id();
+    }
 }

@@ -29,6 +29,7 @@
                 <button type="submit" class="link">Déconnexion</button>
             </form>
         <?php else: ?>
+            <a href="/mes-reservations">Mes réservations</a>
             <a href="/connexion">Espace personnel</a>
         <?php endif; ?>
     </nav>

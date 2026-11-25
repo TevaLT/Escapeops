@@ -8,6 +8,7 @@ require __DIR__ . '/../../partials/header.php';
 <section class="hero">
     <p class="eyebrow">Gestion</p>
     <h1>Game masters</h1>
+    <a class="button" href="/gestion/game-masters/nouveau">Ajouter un game master</a>
 </section>
 
 <?php if ($gameMasters === []): ?>
