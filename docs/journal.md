@@ -246,3 +246,58 @@ Tests effectués :
   - composer test : 302 vérifications vertes
   - serveur + MySQL : vitrine, API, planning, tableau de bord et en-têtes vérifiés
 ```
+
+### Ajout d'un game master par le responsable
+
+```text
+Demande : le responsable doit pouvoir ajouter des game masters (constituer son équipe) sans passer par la base
+Réalisé :
+  - /gestion/game-masters/nouveau : prénom, nom, e-mail (identifiant de connexion), mot de passe initial + confirmation
+  - GameMasterService::create : droit vérifié dans le service (responsable ou admin), rôle forcé à GAME_MASTER,
+    e-mail normalisé en minuscules et unique, mot de passe ≥ 10 caractères avec lettre et chiffre, password_hash
+Décision importante :
+  - le cahier des charges (§ 3) réservait « gérer les comptes » à l'admin ; on ouvre au responsable la seule création
+    de comptes game master. Il ne peut créer ni responsable ni admin (un champ role forgé est ignoré)
+  - le mot de passe initial est transmis de vive voix (aucun e-mail envoyé) ; pas encore de changement de mot de passe
+    par le game master : piste d'amélioration
+Tests effectués :
+  - tests/game-master-accounts.php (22 vérifications) ; composer test : 324 vérifications vertes
+  - serveur + MySQL : formulaire invalide 422 (mots de passe non réaffichés), création 303, game master 403,
+    connexion du nouveau compte 303 puis 403 sur /gestion, nouveau compte proposé à l'affectation des sessions
+```
+
+### « Mes réservations » : accès client sans compte
+
+```text
+Demande : « une connexion pour un client ». Choix validé : retrouver ses réservations sans créer de compte
+(le cahier des charges § 3 et la règle E1 prévoient un public sans compte)
+Réalisé :
+  - chaque option reçoit un code de suivi de 8 caractères (alphabet sans 0/O, 1/I/L), affiché sur la page de suivi
+    et dans le message de confirmation ; colonne reservation.code_suivi (001_schema, base reconstruite) ; MCD mis à jour
+  - /mes-reservations : contact (e-mail ou téléphone) + code → liste de toutes les réservations faites avec ce contact,
+    avec l'état de l'option calculé et le lien « Confirmer ou libérer »
+  - contact comparé sous forme normalisée (e-mail en minuscules, téléphone sans espaces/points/tirets), en PHP et en SQL
+Sécurité :
+  - même message que le contact ou le code soit faux ; 5 échecs max par quart d'heure et par session (429)
+  - accès rangé sous une clé de session distincte du personnel : aucun droit sur /espace ni /gestion ;
+    session_regenerate_id à l'entrée et à la sortie ; page en no-store / no-referrer (elle liste les liens secrets)
+  - limite connue : le compteur d'échecs est lié à la session (un attaquant peut changer de cookie). Acceptable ici
+    vu la taille du code (31^8) ; une limitation par adresse IP serait l'étape suivante
+Tests effectués :
+  - tests/client-access.php ; composer test : 350 vérifications vertes
+  - serveur + MySQL : mauvais code 422, bon code (e-mail en majuscules, code en minuscules avec tiret) 303 → liste,
+    téléphone saisi sans espaces 303, client sur /espace → /connexion, « Quitter » 303, 5 échecs 422 puis 429
+```
+
+### « Mes réservations » : historique des parties
+
+```text
+Réalisé :
+  - la page se divise en « À venir » (option en cours ou réservation confirmée, la plus proche d'abord)
+    et « Historique des parties » (la plus récente d'abord), avec le résultat de chaque partie :
+    jouée, en cours, interrompue, session annulée par les Archives, réservation annulée, option expirée, non jouée
+  - compteur « N parties jouées » ; règles pures dans Domain/ClientHistory
+Décision : l'état de la session prime sur l'heure (une session terminée n'est jamais « à venir », même si
+  son horaire est dans le futur). Découvert sur le jeu de démo : la session 1 est TERMINEE mais datée de 14 h aujourd'hui
+Tests effectués : composer test : 358 vérifications vertes ; page vérifiée avec team.enigme@example.test + TEAM-2345
+```

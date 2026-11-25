@@ -80,6 +80,8 @@ Mot de passe commun : `EscapeOps2026!`
 
 Connexion : http://127.0.0.1:8080/connexion. Un game master accède à `/espace` mais reçoit un **403** sur `/gestion`.
 
+**Client (sans compte)** : « Mes réservations » (http://127.0.0.1:8080/mes-reservations) avec, par exemple, `martin@example.test` + code `MART-6789`, ou `06 00 00 00 01` + `CURX-4567` ; `team.enigme@example.test` + `TEAM-2345` montre une partie jouée dans l'historique. Chaque nouvelle option reçoit son propre code, affiché sur sa page de suivi.
+
 ## Routes disponibles
 
 **Public (sans compte)**
@@ -92,6 +94,7 @@ Connexion : http://127.0.0.1:8080/connexion. Un game master accède à `/espace`
 | `GET /reservations/{jeton}` | Page de suivi de la réservation (lien secret du groupe, 32 caractères hexadécimaux) : option en cours jusqu'à HH h MM, expirée, confirmée ou annulée |
 | `POST /reservations/{jeton}/confirmer` | Confirmer l'option (E1) : 409 si elle a expiré (US-33), si elle est déjà confirmée ou annulée, ou si la session a été annulée entre-temps |
 | `POST /reservations/{jeton}/annuler` | Libérer l'option ou annuler la réservation tant que la partie n'a pas commencé (409 sinon) |
+| `GET /mes-reservations` · `POST /mes-reservations/connexion` · `POST /mes-reservations/deconnexion` | « Mes réservations » : le client, **sans compte**, saisit son contact (e-mail ou téléphone) et le **code de suivi** reçu à la pose de l'option, puis voit ses parties à venir et l'historique de ses parties (jouée, annulée, option expirée…) avec le nombre de parties jouées. Même message si le contact ou le code est faux (422), 429 après 5 échecs en 15 min. Aucun droit sur `/espace` ni `/gestion` |
 | `GET /connexion` · `POST /connexion` · `POST /deconnexion` | Connexion et déconnexion du personnel |
 
 **Personnel connecté** (`/espace`, tous les rôles)
@@ -117,6 +120,7 @@ Connexion : http://127.0.0.1:8080/connexion. Un game master accède à `/espace`
 | `POST /gestion/salles/{id}/equipements` · `POST …/equipements/{eq}/retirer` | Affecter ou retirer un équipement (US-25, relation N–N) |
 | `GET /gestion/equipements` · `POST` | Catalogue des équipements, avec l'indicateur « critique » |
 | `GET /gestion/game-masters` · `/{id}` | Fiches game master et leurs sessions (US-24) |
+| `GET /gestion/game-masters/nouveau` · `POST /gestion/game-masters` | Ajouter un game master : prénom, nom, e-mail (identifiant), mot de passe initial (10 caractères minimum, lettre et chiffre, confirmé). Le rôle est toujours `GAME_MASTER` : un champ `role` forgé est ignoré. 422 si e-mail déjà utilisé ou champ invalide, 403 pour un game master |
 | `POST /gestion/incidents/{id}/resoudre` | Résoudre un incident (US-26) |
 
 **API JSON** : `GET /api/health`, `GET /api/rooms`, `GET /api/rooms/{id}` (contrat : [docs/API.md](docs/API.md)).
@@ -131,6 +135,7 @@ Connexion : http://127.0.0.1:8080/connexion. Un game master accède à `/espace`
 | Déclarer un incident | ✅ | ✅ | ✅ |
 | Résoudre un incident, tableau de bord | ❌ | ✅ | ✅ |
 | Gérer les salles et les équipements | ❌ | ✅ | ✅ |
+| Ajouter un game master (compte `GAME_MASTER` uniquement) | ❌ | ✅ | ✅ |
 
 ## Démontrer les règles contractuelles
 
@@ -166,6 +171,8 @@ composer test
 - `tests/game-master-conflicts.php` : **E5** (US-35 à US-38) : chevauchement `a.début < b.fin ET b.début < a.fin`, créneaux jointifs acceptés dans les deux sens, session sans game master, game master inconnu ou qui n'en est pas un, déplacement qui crée un conflit, session annulée qui libère le game master, affectation depuis la fiche, démarrage sans game master refusé.
 - `tests/checklist.php` : **E10** (US-39 à US-42) : seul le game master affecté remplit la checklist ; 2/3 enregistrée mais « salle non prête » ; POST forgé `etat=PRETE` refusé (même par l'admin) ; 3/3 → `PRETE`, avec le GM, la date et les 3 valeurs ; historique du plus récent au plus ancien.
 - `tests/evolution-ev-tev-01.php` : **évolution EV-TEV-01** (issue #8) : checklist 3/3 sans game master → `PRETE` refusé ; game master affecté sans conflit → accepté, en conflit → refusé ; session prête qui perd son unique game master → `PREVUE`, réservations intactes, puis nouveau GM qui revalide ; remplacement d'un GM → reste `PRETE` ; session `EN_COURS` jamais modifiée.
+- `tests/game-master-accounts.php` : ajout d'un game master : refus pour un game master ou un anonyme, champs obligatoires, e-mail invalide ou déjà pris (même en majuscules), mot de passe trop court ou sans chiffre, confirmation différente ; rôle forcé à `GAME_MASTER`, e-mail en minuscules, mot de passe haché ; le nouveau compte se connecte.
+- `tests/client-access.php` : « Mes réservations » : code de suivi (format, alphabet sans caractères ambigus), contact normalisé (casse de l'e-mail, espaces et points du téléphone) ; refus si le contact ou le code est faux, avec le même message ; le client ne voit que ses réservations ; accès séparé du personnel ; « Quitter » ; blocage après 5 échecs pendant 15 min ; historique des parties (à venir / passées, résultat de chaque partie, compteur de parties jouées).
 - `tests/rooms-equipment.php` : salles (US-21 : champs, capacités, nom unique, suppression refusée si la salle est utilisée) et équipements (US-25 : même équipement dans deux salles, critique, doublon refusé, retrait).
 - `tests/incidents-dashboard.php` : incidents (US-26 : déclarant pris dans la session, équipement et session cohérents avec la salle, résolution réservée), fiches game master (US-24), tableau de bord (US-28 : salle bloquée, en partie, disponible).
 
