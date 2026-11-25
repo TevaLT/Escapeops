@@ -124,9 +124,9 @@
 | ✅ US-62 | M | **Vue** `v_planning_detaille` | Sessions + salle + GM + réservation et statut ; utilisée par le planning et `GET /api/sessions` |
 | ✅ US-63 | M | **Vue** `v_dashboard_exploitation` | Prochaines sessions, incidents ouverts par salle, salles bloquées ; utilisée par le tableau de bord |
 | ✅ US-64 | M | Migrations `002_vues.sql`, `003_procedures.sql`, `004_triggers.sql` | Reconstruction testée sur une **base vierge**, ordre décrit dans le README |
-| US-65 | M | Preuves | Capture avant/après du trigger, `CALL`, extrait du repository, page qui dépend de chaque vue |
+| ✅ US-65 | M | Preuves | Capture avant/après du trigger, `CALL`, extrait du repository, page qui dépend de chaque vue |
 
-**État mercredi 25 soir :** vues, procédure et trigger écrits, branchés et testés (`tests/sql-advanced.php`, 25 vérifications ; vérifiés aussi dans la CI). Trigger créé en local après `SET PERSIST log_bin_trust_function_creators = 1` (erreur 1419, voir le README du starter-kit) ; `composer db:reset` reconstruit 001 → 004 + seed sans erreur ; trigger vérifié sur MySQL (PREVUE → PRETE tracé, même statut ou autre colonne : rien). Reste US-65 : les captures.
+**État mercredi 25 soir :** vues, procédure et trigger écrits, branchés et testés (`tests/sql-advanced.php`, 25 vérifications ; vérifiés aussi dans la CI). Trigger créé en local après `SET PERSIST log_bin_trust_function_creators = 1` (erreur 1419, voir le README du starter-kit) ; `composer db:reset` reconstruit 001 → 004 + seed sans erreur ; trigger vérifié sur MySQL (PREVUE → PRETE tracé, même statut ou autre colonne : rien). Preuves US-65 : 12 captures dans `docs/preuves/US-65.md` (trigger déclenché depuis l'application, condition fausse, CALL, extraits des repositories, pages et API qui dépendent des vues).
 
 ---
 

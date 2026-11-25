@@ -44,7 +44,7 @@
 "Vue v_planning_detaille","US-62","5 — SQL avancé (clause obligatoire)","","Must","Jeudi","Fait","Socle","Sessions + salle + GM + réservation et statut ; utilisée par le planning et GET /api/sessions"
 "Vue v_dashboard_exploitation","US-63","5 — SQL avancé (clause obligatoire)","","Must","Jeudi","Fait","Socle","Prochaines sessions, incidents ouverts par salle, salles bloquées ; utilisée par le tableau de bord"
 "Migrations 002_vues.sql, 003_procedures.sql, 004_triggers.sql","US-64","5 — SQL avancé (clause obligatoire)","","Must","Jeudi","Fait","Socle","Reconstruction testée sur une base vierge, ordre décrit dans le README"
-"Preuves","US-65","5 — SQL avancé (clause obligatoire)","","Must","Jeudi","À faire","Socle","Capture avant/après du trigger, CALL, extrait du repository, page qui dépend de chaque vue"
+"Preuves","US-65","5 — SQL avancé (clause obligatoire)","","Must","Jeudi","Fait","Socle","Capture avant/après du trigger, CALL, extrait du repository, page qui dépend de chaque vue"
 "Analyser l'impact du ticket d'évolution client","US-70","6 — Évolution et incident imposés","","Must","Mercredi","Fait","Socle","Fiche d'analyse rédigée avant de toucher au code"
 "Implémenter l'évolution","US-71","6 — Évolution et incident imposés","","Must","Mercredi","Fait","Socle","Tests de non-régression sur E1, E5 et E10 toujours verts"
 "Incident : reproduire, diagnostiquer, corriger","US-72","6 — Évolution et incident imposés","","Must","Jeudi","À faire","Socle","Utiliser templates/RAPPORT_INCIDENT.md, avec un test qui prouve la correction"
