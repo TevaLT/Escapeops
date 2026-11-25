@@ -21,9 +21,12 @@
 | Mercredi soir | Épic 5 — SQL avancé (US-60 à US-65) | ✅ preuves dans `docs/preuves/US-65.md` |
 | | `composer test` | 14 suites, 431 vérifications vertes |
 
+🌙 **Fin de mercredi 25/11 :** tout est commité et poussé (PR #1, #2 et #3 fusionnées, branche `docs/preuves-ev-tev-01` poussée). Notion est à jour (68 tickets : 52 faits, 16 à faire).
+
 ⚠️ **À faire en premier jeudi matin :**
-1. ✅ Trigger autorisé sur la base locale, `composer db:reset` complet
-2. Commiter la branche `feature/api-us-51-55` (API + SQL avancé), pousser, vérifier que la CI passe, ouvrir la PR.
+1. Fusionner la PR `docs/preuves-ev-tev-01` (preuves des échanges avec la cliente, épic 9)
+2. Issue #8 : cocher les critères d'acceptation et les livrables, puis fermer le ticket
+3. Incident imposé (US-72) dès qu'il arrive ; en attendant, livrables manquants : cas d'utilisation, MLD, sections « Déploiement » et « Limites connues » du README
 
 ---
 
