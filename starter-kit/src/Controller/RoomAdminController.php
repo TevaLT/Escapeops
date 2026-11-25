@@ -167,9 +167,16 @@ final class RoomAdminController
             return $this->notFound($response, 'Salle');
         }
 
+        try {
+            $bilan = $this->rooms->bilan($this->auth->user(), $id);
+        } catch (AccessDeniedException $exception) {
+            return $this->denied($response, $exception);
+        }
+
         return $this->renderer->render($response, 'gestion/salles/show', [
             'salle' => $room,
             'usage' => $this->rooms->usage($id),
+            'bilan' => $bilan,
             'equipements' => $this->equipment->forRoom($id),
             'disponibles' => $this->equipment->assignableTo($id),
             'erreurs' => $errors,

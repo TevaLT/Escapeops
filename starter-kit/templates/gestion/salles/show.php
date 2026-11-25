@@ -1,6 +1,7 @@
 <?php
 /** @var array<string, mixed> $salle */
 /** @var array{sessions: int, incidents: int} $usage */
+/** @var array{nb_terminees: int, nb_annulees: int, nb_interrompues: int, dernier_controle: ?string, terminees_depuis_controle: int} $bilan */
 /** @var list<array<string, mixed>> $equipements */
 /** @var list<array<string, mixed>> $disponibles */
 /** @var array<string, string> $erreurs */
@@ -32,6 +33,16 @@ require __DIR__ . '/../../partials/header.php';
 </section>
 
 <?= bandeau_erreurs($erreurs, [], 'Action refusée.') ?>
+
+<h2>Bilan d'exploitation</h2>
+<?php /* Calculé par la procédure stockée sp_bilan_salle (US-61). */ ?>
+<ul class="facts">
+    <li><?= $bilan['nb_terminees'] ?> session(s) terminée(s)</li>
+    <li><?= $bilan['nb_annulees'] ?> annulée(s)</li>
+    <li><?= $bilan['nb_interrompues'] ?> interrompue(s)</li>
+    <li>Dernier contrôle : <?= $bilan['dernier_controle'] !== null ? e(date_fr($bilan['dernier_controle'])) : 'jamais' ?></li>
+    <li><?= $bilan['terminees_depuis_controle'] ?> session(s) terminée(s) depuis</li>
+</ul>
 
 <h2>Équipements</h2>
 <?php if ($equipements === []): ?>

@@ -58,11 +58,23 @@ sort($files);
 $files[] = $root . '/database/seed.sql';
 
 foreach ($files as $file) {
-    // Parcourir chaque résultat fait remonter une erreur située après la 1re instruction.
-    $statement = $pdo->query((string) file_get_contents($file));
-    do {
-        $statement->closeCursor();
-    } while ($statement->nextRowset());
+    try {
+        // Parcourir chaque résultat fait remonter une erreur située après la 1re instruction.
+        $statement = $pdo->query((string) file_get_contents($file));
+        do {
+            $statement->closeCursor();
+        } while ($statement->nextRowset());
+    } catch (PDOException $exception) {
+        // 1419 : journal binaire actif et compte sans privilège SUPER : MySQL refuse CREATE TRIGGER.
+        if (($exception->errorInfo[1] ?? null) === 1419) {
+            fwrite(STDERR, '✘ ' . basename($file) . " : MySQL refuse de créer le trigger (journal binaire actif).\n"
+                . "  Une fois pour toutes, en root :\n"
+                . "  docker exec -it escapeops-db mysql -uroot -p -e \"SET PERSIST log_bin_trust_function_creators = 1\"\n"
+                . "  (ou recréer le conteneur avec l'option --log-bin-trust-function-creators=1), puis relancer composer db:reset.\n");
+            exit(1);
+        }
+        throw $exception;
+    }
     echo '✔ ' . basename($file) . PHP_EOL;
 }
 

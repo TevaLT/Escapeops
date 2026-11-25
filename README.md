@@ -65,8 +65,9 @@ Ressources du cadre de projet : [docs/](docs/) (guides de la semaine), [sujets/]
 | Mardi 24 | 2 — Socle métier (sessions, réservations, tableau de bord) | ✅ |
 | Mercredi 25 (matin) | 3 — Règles E1, E5, E10, avec leurs refus et leurs tests | ✅ |
 | Mercredi 25 | 6 — Évolution client EV-TEV-01 « checklist et game master obligatoires » (issue #8) : analyse, code, tests | ✅ |
-| Mercredi 25 (après-midi) | 4 — API JSON (US-51 à US-55) | à faire |
-| Jeudi 26 | 5 — SQL avancé (vues, procédure, trigger) · 6 — Évolution et incident | à faire |
+| Mercredi 25 (après-midi) | 4 — API JSON (US-51 à US-55) : sessions, option E1, confirmation, incidents, contrat documenté | ✅ |
+| Mercredi 25 (soir) | 5 — SQL avancé : 2 vues, procédure `sp_bilan_salle`, trigger `trg_session_history` | ✅ reste les captures de preuve (US-65) |
+| Jeudi 26 | 6 — Incident imposé (US-72) · première extension (E2) | à faire |
 | Vendredi 27 | 7 — Livraison et démonstration | à faire |
 
 Détail ticket par ticket : [BACKLOG.md](BACKLOG.md).

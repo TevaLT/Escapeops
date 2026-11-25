@@ -301,3 +301,50 @@ Décision : l'état de la session prime sur l'heure (une session terminée n'est
   son horaire est dans le futur). Découvert sur le jeu de démo : la session 1 est TERMINEE mais datée de 14 h aujourd'hui
 Tests effectués : composer test : 358 vérifications vertes ; page vérifiée avec team.enigme@example.test + TEAM-2345
 ```
+
+### Après-midi : roadmap, PR #1, API JSON (épic 4) et SQL avancé (épic 5)
+
+```text
+Organisation :
+  - ROADMAP.md écrit (jalons jusqu'à vendredi, ordre de sacrifice) ; le travail non commité depuis b9af613
+    est découpé en 4 commits sur feature/comptes-gm-espace-client, fusionné dans main (PR #1)
+  - nouvelle branche feature/api-us-51-55 ; l'épic 5 est confié en parallèle à un agent, avec une liste
+    de fichiers réservés à chacun pour ne pas se marcher dessus
+API (US-51 à US-55) :
+  - GET /api/sessions?roomId=&date= : informations publiques seulement (ni GM ni groupe), disponibilité
+    calculée par SlotAvailability comme la vitrine ; filtre mal formé → 422 (jamais ignoré en silence)
+  - POST /api/reservations → ReservationService::placeOption tel quel (201 + Location, 409, 422 par champ, 404, 415, 400)
+  - GET /api/reservations/{jeton} et POST …/confirmation → 409 OPTION_EXPIRED après 15 min
+  - POST /api/incidents → RequireRole (401/403 JSON) puis IncidentService::report qui revérifie le droit
+  - 404 JSON sur toute adresse inconnue sous /api (avant : page HTML de Slim, contraire au contrat)
+Décisions :
+  - la réservation est désignée par son jeton secret et non par un id : un id se devine (et se confirmerait)
+  - contrôleurs dans src/Controller/Api/ sans règle métier : ils renomment les champs (nbJoueurs → nb_joueurs)
+    et traduisent les exceptions en codes HTTP ; un seul ReservationService partagé site/API dans index.php
+SQL avancé (US-60 à US-64) :
+  - 002 : v_planning_detaille (SessionRepository::search → planning, tableau de bord, espace GM, GET /api/sessions)
+          v_dashboard_exploitation (état des salles du tableau de bord)
+  - 003 : sp_bilan_salle(id) appelée par RoomRepository::bilan(), bloc « Bilan d'exploitation » sur /gestion/salles/{id}
+  - 004 : trg_session_history, une ligne dans historique_session à chaque changement de statut, aucune sinon
+Problème rencontré :
+  - en local, CREATE TRIGGER refusé (erreur 1419) : MySQL 8.4 active le journal binaire et le compte escapeops
+    n'est pas root. Correctif : log_bin_trust_function_creators=1 (option docker run dans le README, SET PERSIST
+    une fois pour un conteneur existant). Même piège dans la CI (compte bts) : étape ajoutée avant db:reset
+Tests effectués :
+  - tests/api.php (44) et tests/sql-advanced.php (25) ; composer test : 14 suites, 431 vérifications vertes (427 + 4 scénarios JSON)
+  - serveur + MySQL : sessions 200/422/404, option 201 puis groupe B 409 « en option jusqu'à 13 h 19 »,
+    confirmation 200 → créneau COMPLET, 415, incident sans connexion 401, adresse inconnue 404 JSON
+  - CI : nouvelles vérifications API + vues, CALL et trigger sur le vrai MySQL
+Reste : créer le trigger sur la base locale puis db:reset, captures de preuve US-65
+```
+
+### Fin d'après-midi : trigger créé sur la base locale
+
+```text
+Problème : SET PERSIST refusé d'abord (erreur 1045, mauvais mot de passe root saisi), puis accepté
+Résultat : composer db:reset → 001, 002, 003, 004 et seed sans erreur
+Vérification sur MySQL : trg_session_history présent (AFTER UPDATE ON session) ;
+  session 2 PREVUE → PRETE : 1 ligne dans historique_session ; même statut réécrit ou autre colonne modifiée : aucune ligne
+  v_dashboard_exploitation et CALL sp_bilan_salle(1) répondent ; base remise à zéro ensuite (db:reset)
+Preuves : MCD avant/après « Mes réservations » dans docs/preuves/
+```

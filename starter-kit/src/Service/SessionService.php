@@ -13,6 +13,7 @@ use App\Domain\ReservationOption;
 use App\Domain\Role;
 use App\Domain\SessionSchedule;
 use App\Domain\SessionStatus;
+use App\Domain\SlotAvailability;
 use App\Domain\ValidationException;
 use App\Repository\ChecklistRepository;
 use App\Repository\ReservationRepository;
@@ -81,6 +82,51 @@ final class SessionService
     public function upcoming(int $limit): array
     {
         return $this->withLiveOption($this->sessions->search(['from' => $this->clock->now(), 'activeOnly' => true, 'limit' => $limit]));
+    }
+
+    /**
+     * Créneaux publics (US-51, GET /api/sessions) : aujourd'hui et à venir, ou un jour donné,
+     * éventuellement d'une seule salle, avec la disponibilité calculée à l'instant (E1).
+     * Ne renvoie que des informations publiques : ni game master, ni nom de groupe.
+     *
+     * @return list<array<string, mixed>>
+     * @throws NotFoundException si la salle demandée n'existe pas
+     */
+    public function publicSlots(?int $roomId = null, ?DateTimeImmutable $day = null): array
+    {
+        if ($roomId !== null && $this->rooms->find($roomId) === null) {
+            throw new NotFoundException('Salle introuvable.');
+        }
+
+        $now = $this->clock->now();
+        $criteria = ['room' => $roomId];
+        if ($day !== null) {
+            $criteria['day'] = $day;
+        } else {
+            $criteria['from'] = $now->setTime(0, 0);
+        }
+
+        $slots = [];
+        foreach ($this->sessions->search($criteria) as $session) {
+            // Même calcul que la vitrine : une réservation confirmée rend le créneau COMPLET,
+            // une option encore active le met EN_OPTION, une option expirée ne compte plus.
+            $availability = SlotAvailability::of(
+                $session + ['nb_confirmees' => $session['groupe'] !== null ? 1 : 0],
+                $now
+            );
+            $slots[] = [
+                'id' => (int) $session['id_session'],
+                'salleId' => (int) $session['id_salle'],
+                'salle' => $session['salle'],
+                'debut' => $session['date_debut'],
+                'fin' => $session['date_fin'],
+                'statut' => $session['statut'],
+                'disponibilite' => $availability,
+                'optionJusqua' => $availability === SlotAvailability::EN_OPTION ? $session['option_expire_le'] : null,
+            ];
+        }
+
+        return $slots;
     }
 
     /**
