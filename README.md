@@ -53,7 +53,7 @@ Les fois suivantes, le conteneur existe déjà : `docker start escapeops-db` suf
 | [docs/journal.md](docs/journal.md) | Journal de bord quotidien |
 | [starter-kit/docs/API.md](starter-kit/docs/API.md) | Contrat de l'API JSON |
 | [docs/preuves/US-65.md](docs/preuves/US-65.md) | Preuves du SQL avancé : trigger avant/après, CALL, vues et pages qui en dépendent |
-| [docs/preuves/](docs/preuves/) | Captures de preuve (MCD avant/après « Mes réservations », SQL avancé) |
+| [docs/preuves/](docs/preuves/) | Captures de preuve : MCD avant/après « Mes réservations », SQL avancé, échanges avec la cliente sur l'évolution EV-TEV-01 (`ev-tev-01/`) |
 | [starter-kit/docs/ARCHITECTURE.md](starter-kit/docs/ARCHITECTURE.md) | Architecture du code et trajet d'une requête |
 
 Ressources du cadre de projet : [docs/](docs/) (guides de la semaine), [sujets/](sujets/), [templates/](templates/) (recette, rapport d'incident, démonstration…).

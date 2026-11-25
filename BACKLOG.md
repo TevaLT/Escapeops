@@ -181,6 +181,19 @@
 
 ---
 
+## Épic 9 — Demandes ajoutées en cours de semaine · *Mercredi*
+
+Ajoutées après le démarrage, une fois les règles contractuelles vertes (fusionnées dans la PR #1).
+
+| ID | Priorité | Ticket | Critères d'acceptation |
+|---|---|---|---|
+| ✅ US-100 | S | Le responsable ajoute un game master (compte `GAME_MASTER` uniquement) | Droit vérifié dans le service (responsable ou admin), rôle forcé, e-mail unique, mot de passe ≥ 10 caractères haché · `tests/game-master-accounts.php` |
+| ✅ US-101 | S | « Mes réservations » : le client retrouve ses réservations sans compte (contact + code de suivi) | Code de suivi de 8 caractères · même message si le contact ou le code est faux · 5 essais max en 15 min (429) · accès séparé du personnel · `tests/client-access.php` |
+| ✅ US-102 | C | Historique des parties du client | À venir / historique, résultat de chaque partie, nombre de parties jouées |
+| ✅ US-103 | C | Vitrine : « Qui sommes-nous ? » et palette « nuit » | Chiffres calculés depuis les salles en base |
+
+---
+
 ## Bonus (Could, après les extensions)
 
 Planning en calendrier · écran « régie » sur tablette · QR code de check-in · taux d'occupation · historique de maintenance
