@@ -113,3 +113,10 @@ Après `composer db:reset`, connecté en responsable, fiche de la **session 7** 
 | POST forgé `etat=EN_COURS` | 422 (E5) | **422** « aucun game master affecté » (inchangé) |
 | Réaffecter David, qui revalide la checklist 3/3 (compte david@) | — | Session de nouveau **Prête** |
 | Réservations de la session | — | Intactes (aucune suppression, pas de « à recontacter ») |
+
+## 10. Échanges avec la cliente (issue #8)
+
+| Capture | Ce qu'elle montre |
+|---|---|
+| [01_ticket_recu_et_pris_en_charge.png](../../../docs/preuves/ev-tev-01/01_ticket_recu_et_pris_en_charge.png) | Mercredi 10 h 34 : le ticket tel que reçu (besoin, critères d'acceptation, livrables), la prise en charge « C'est noté » et l'affectation |
+| [02_reponse_au_client.png](../../../docs/preuves/ev-tev-01/02_reponse_au_client.png) | Mercredi 15 h 26 : la réponse à la cliente qui explique ce qui a été mis en place |
