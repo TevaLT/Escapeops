@@ -76,6 +76,50 @@ final class RoomRepository
     }
 
     /**
+     * Bilan d'exploitation de la salle (US-61) : procédure stockée sp_bilan_salle (003_procedures.sql).
+     * Sous SQLite (tests), qui n'a pas de procédures stockées, la même requête est faite en SQL simple.
+     *
+     * @return array{nb_terminees: int, nb_annulees: int, nb_interrompues: int, dernier_controle: ?string, terminees_depuis_controle: int}
+     */
+    public function bilan(int $roomId): array
+    {
+        if ($this->database->type === 'mysql') {
+            $statement = $this->database->pdo->prepare('CALL sp_bilan_salle(:salle)');
+            $statement->execute(['salle' => $roomId]);
+            try {
+                $row = $statement->fetch(PDO::FETCH_ASSOC);
+                // Un CALL renvoie un 2e résultat (le statut de la procédure) : le vider libère la connexion.
+                while ($statement->nextRowset()) {
+                }
+            } finally {
+                $statement->closeCursor();
+            }
+        } else {
+            $statement = $this->database->pdo->prepare(
+                "SELECT SUM(s.statut = 'TERMINEE') AS nb_terminees,
+                        SUM(s.statut = 'ANNULEE') AS nb_annulees,
+                        SUM(s.statut = 'INTERROMPUE') AS nb_interrompues,
+                        c.dernier AS dernier_controle,
+                        SUM(s.statut = 'TERMINEE' AND (c.dernier IS NULL OR s.date_fin > c.dernier)) AS terminees_depuis_controle
+                   FROM (SELECT MAX(date_controle) AS dernier FROM controle_salle WHERE id_salle = :controle) c
+                   LEFT JOIN session s ON s.id_salle = :salle"
+            );
+            $statement->execute(['controle' => $roomId, 'salle' => $roomId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        }
+
+        $row = is_array($row) ? $row : [];
+
+        return [
+            'nb_terminees' => (int) ($row['nb_terminees'] ?? 0),
+            'nb_annulees' => (int) ($row['nb_annulees'] ?? 0),
+            'nb_interrompues' => (int) ($row['nb_interrompues'] ?? 0),
+            'dernier_controle' => isset($row['dernier_controle']) ? (string) $row['dernier_controle'] : null,
+            'terminees_depuis_controle' => (int) ($row['terminees_depuis_controle'] ?? 0),
+        ];
+    }
+
+    /**
      * Sessions à venir d'une salle, avec ce qu'il faut pour décider de leur disponibilité :
      * nombre de réservations confirmées et fin de la dernière option EN_ATTENTE.
      */

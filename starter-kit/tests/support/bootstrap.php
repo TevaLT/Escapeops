@@ -81,7 +81,8 @@ function testUsers(): array
 }
 
 /**
- * Base SQLite neuve, au schéma équivalent à 001_schema.sql (contraintes CHECK comprises) :
+ * Base SQLite neuve, au schéma équivalent à 001_schema.sql (contraintes CHECK comprises),
+ * avec les vues de 002 et le trigger de 004 (pas de procédure : SQLite n'en a pas, voir RoomRepository::bilan) :
  * 2 salles, 4 comptes, 2 équipements installés dans la salle 1 (dont 1 critique).
  */
 function testDatabase(): Medoo
@@ -118,6 +119,48 @@ function testDatabase(): Medoo
             id_game_master INTEGER NOT NULL REFERENCES utilisateur (id_utilisateur),
             salle_rangee INTEGER NOT NULL DEFAULT 0, materiel_teste INTEGER NOT NULL DEFAULT 0,
             securite_verifiee INTEGER NOT NULL DEFAULT 0, date_validation TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+         CREATE TABLE historique_session (id_historique INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_session INTEGER NOT NULL REFERENCES session (id_session) ON DELETE CASCADE,
+            ancien_statut TEXT NULL, nouveau_statut TEXT NOT NULL, date_changement TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+         CREATE TABLE controle_salle (id_controle INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_salle INTEGER NOT NULL REFERENCES salle (id_salle) ON DELETE CASCADE,
+            id_responsable INTEGER NOT NULL REFERENCES utilisateur (id_utilisateur),
+            date_controle TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, commentaire TEXT NULL);
+
+         -- Vues de 002_vues.sql : même définition, le SQL est compatible SQLite.
+         CREATE VIEW v_planning_detaille AS
+         SELECT s.id_session, s.id_salle, s.id_game_master, s.date_debut, s.date_fin, s.statut,
+                sa.nom AS salle, gm.prenom AS gm_prenom, gm.nom AS gm_nom,
+                (SELECT r.nom_groupe FROM reservation r
+                  WHERE r.id_session = s.id_session AND r.statut = 'CONFIRMEE' LIMIT 1) AS groupe,
+                (SELECT r.nom_groupe FROM reservation r
+                  WHERE r.id_session = s.id_session AND r.statut = 'EN_ATTENTE'
+                  ORDER BY r.date_expiration DESC LIMIT 1) AS option_groupe,
+                (SELECT MAX(r.date_expiration) FROM reservation r
+                  WHERE r.id_session = s.id_session AND r.statut = 'EN_ATTENTE') AS option_expire_le
+           FROM session s
+           JOIN salle sa ON sa.id_salle = s.id_salle
+           LEFT JOIN utilisateur gm ON gm.id_utilisateur = s.id_game_master;
+         CREATE VIEW v_dashboard_exploitation AS
+         SELECT sa.id_salle, sa.nom,
+                (SELECT COUNT(*) FROM incident i
+                  WHERE i.id_salle = sa.id_salle AND i.statut = 'OUVERT') AS incidents_ouverts,
+                (SELECT COUNT(*) FROM incident i
+                  WHERE i.id_salle = sa.id_salle AND i.statut = 'OUVERT' AND i.est_bloquant = 1) AS incidents_bloquants,
+                (SELECT COUNT(*) FROM session s
+                  WHERE s.id_salle = sa.id_salle AND s.statut = 'EN_COURS') AS parties_en_cours,
+                CASE WHEN EXISTS (SELECT 1 FROM incident i
+                                   WHERE i.id_salle = sa.id_salle AND i.statut = 'OUVERT' AND i.est_bloquant = 1)
+                     THEN 1 ELSE 0 END AS est_bloquee
+           FROM salle sa;
+
+         -- Trigger de 004_triggers.sql, en syntaxe SQLite (WHEN au lieu de IF, IS NOT au lieu de <=>).
+         CREATE TRIGGER trg_session_history AFTER UPDATE OF statut ON session
+         FOR EACH ROW WHEN OLD.statut IS NOT NEW.statut
+         BEGIN
+             INSERT INTO historique_session (id_session, ancien_statut, nouveau_statut, date_changement)
+             VALUES (NEW.id_session, OLD.statut, NEW.statut, datetime('now', 'localtime'));
+         END;
 
          INSERT INTO utilisateur (id_utilisateur, nom, prenom, email, role) VALUES
             (1, 'Admin', 'Alice', 'admin@escapeops.test', 'ADMIN'),

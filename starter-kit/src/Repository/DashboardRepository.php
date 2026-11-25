@@ -9,8 +9,9 @@ use Medoo\Medoo;
 use PDO;
 
 /**
- * Indicateurs du tableau de bord (US-28).
- * (Cette requête deviendra la vue v_dashboard_exploitation, US-63.)
+ * Indicateurs du tableau de bord (US-28), lus dans la vue v_dashboard_exploitation (US-63).
+ * Les « prochaines sessions » du tableau de bord viennent, elles, de v_planning_detaille
+ * (SessionService::upcoming() → SessionRepository::search()).
  */
 final class DashboardRepository
 {
@@ -18,22 +19,19 @@ final class DashboardRepository
     {
     }
 
-    /** Pour chaque salle : incidents ouverts, incidents bloquants, partie en cours, prochaine session. */
+    /**
+     * Pour chaque salle : incidents ouverts, incidents bloquants, partie en cours, salle bloquée (vue),
+     * plus la prochaine session, calculée ici car elle dépend de l'heure de l'application.
+     */
     public function roomStatus(DateTimeImmutable $now): array
     {
         $statement = $this->database->pdo->prepare(
-            "SELECT sa.id_salle, sa.nom,
-                    (SELECT COUNT(*) FROM incident i
-                      WHERE i.id_salle = sa.id_salle AND i.statut = 'OUVERT') AS incidents_ouverts,
-                    (SELECT COUNT(*) FROM incident i
-                      WHERE i.id_salle = sa.id_salle AND i.statut = 'OUVERT' AND i.est_bloquant = 1) AS incidents_bloquants,
-                    (SELECT COUNT(*) FROM session s
-                      WHERE s.id_salle = sa.id_salle AND s.statut = 'EN_COURS') AS parties_en_cours,
+            "SELECT v.id_salle, v.nom, v.incidents_ouverts, v.incidents_bloquants, v.parties_en_cours, v.est_bloquee,
                     (SELECT MIN(s.date_debut) FROM session s
-                      WHERE s.id_salle = sa.id_salle AND s.date_debut > :maintenant
+                      WHERE s.id_salle = v.id_salle AND s.date_debut > :maintenant
                         AND s.statut IN ('PREVUE', 'PRETE')) AS prochaine_session
-               FROM salle sa
-              ORDER BY sa.nom"
+               FROM v_dashboard_exploitation v
+              ORDER BY v.nom"
         );
         $statement->execute(['maintenant' => $now->format('Y-m-d H:i:s')]);
 

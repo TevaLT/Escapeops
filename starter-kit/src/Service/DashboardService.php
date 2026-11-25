@@ -39,10 +39,13 @@ final class DashboardService
         ];
     }
 
-    /** Un incident bloquant ouvert rend la salle indisponible ; sinon une partie en cours l'occupe. */
+    /**
+     * Un incident bloquant ouvert rend la salle indisponible (est_bloquee, calculé par la vue
+     * v_dashboard_exploitation) ; sinon une partie en cours l'occupe.
+     */
     public static function roomState(array $room): string
     {
-        if ((int) $room['incidents_bloquants'] > 0) {
+        if ((int) $room['est_bloquee'] === 1) {
             return self::BLOQUEE;
         }
 

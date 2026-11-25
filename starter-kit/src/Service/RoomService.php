@@ -75,6 +75,21 @@ final class RoomService
         return $this->repository->usage($id);
     }
 
+    /**
+     * Bilan d'exploitation de la salle (US-61, procédure sp_bilan_salle), réservé à la gestion.
+     * Base du badge CONTROLE_A_PREVOIR (E9, US-96).
+     *
+     * @return array{nb_terminees: int, nb_annulees: int, nb_interrompues: int, dernier_controle: ?string, terminees_depuis_controle: int}
+     * @throws \App\Domain\AccessDeniedException|NotFoundException
+     */
+    public function bilan(?CurrentUser $user, int $id): array
+    {
+        Authorization::denyUnlessCanManageRooms($user);
+        $this->requireRoom($id);
+
+        return $this->repository->bilan($id);
+    }
+
     /** @throws \App\Domain\AccessDeniedException|ValidationException */
     public function create(?CurrentUser $user, array $input): int
     {

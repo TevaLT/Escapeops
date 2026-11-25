@@ -17,8 +17,9 @@ final class SessionRepository
     }
 
     /**
-     * Sessions avec la salle, le game master et le groupe dont la réservation est confirmée.
-     * (Ces jointures deviendront la vue v_planning_detaille, US-62.)
+     * Sessions avec la salle, le game master et le groupe dont la réservation est confirmée,
+     * lues dans la vue v_planning_detaille (US-62, database/migrations/002_vues.sql).
+     * Les clés renvoyées sont celles des colonnes de la vue.
      *
      * Critères possibles (tous facultatifs) :
      *  id, from (finit après), day (commence ce jour-là), room, status, gameMaster,
@@ -32,50 +33,39 @@ final class SessionRepository
         $params = [];
 
         if (isset($criteria['id'])) {
-            $where[] = 's.id_session = :id';
+            $where[] = 'v.id_session = :id';
             $params['id'] = (int) $criteria['id'];
         }
         if (isset($criteria['from'])) {
-            $where[] = 's.date_fin >= :depuis';
+            $where[] = 'v.date_fin >= :depuis';
             $params['depuis'] = $criteria['from']->format(self::FORMAT);
         }
         if (isset($criteria['day'])) {
-            $where[] = 's.date_debut >= :jour AND s.date_debut < :lendemain';
+            $where[] = 'v.date_debut >= :jour AND v.date_debut < :lendemain';
             $params['jour'] = $criteria['day']->setTime(0, 0)->format(self::FORMAT);
             $params['lendemain'] = $criteria['day']->setTime(0, 0)->modify('+1 day')->format(self::FORMAT);
         }
         if (isset($criteria['room'])) {
-            $where[] = 's.id_salle = :salle';
+            $where[] = 'v.id_salle = :salle';
             $params['salle'] = (int) $criteria['room'];
         }
         if (isset($criteria['status'])) {
-            $where[] = 's.statut = :statut';
+            $where[] = 'v.statut = :statut';
             $params['statut'] = (string) $criteria['status'];
         }
         if (isset($criteria['gameMaster'])) {
-            $where[] = 's.id_game_master = :gm';
+            $where[] = 'v.id_game_master = :gm';
             $params['gm'] = (int) $criteria['gameMaster'];
         }
         if (!empty($criteria['activeOnly'])) {
-            $where[] = "s.statut NOT IN ('TERMINEE', 'ANNULEE')";
+            $where[] = "v.statut NOT IN ('TERMINEE', 'ANNULEE')";
         }
 
-        $sql = "SELECT s.id_session, s.id_salle, s.id_game_master, s.date_debut, s.date_fin, s.statut,
-                       sa.nom AS salle,
-                       gm.prenom AS gm_prenom, gm.nom AS gm_nom,
-                       (SELECT r.nom_groupe FROM reservation r
-                         WHERE r.id_session = s.id_session AND r.statut = 'CONFIRMEE'
-                         LIMIT 1) AS groupe,
-                       (SELECT r.nom_groupe FROM reservation r
-                         WHERE r.id_session = s.id_session AND r.statut = 'EN_ATTENTE'
-                         ORDER BY r.date_expiration DESC LIMIT 1) AS option_groupe,
-                       (SELECT MAX(r.date_expiration) FROM reservation r
-                         WHERE r.id_session = s.id_session AND r.statut = 'EN_ATTENTE') AS option_expire_le
-                  FROM session s
-                  JOIN salle sa ON sa.id_salle = s.id_salle
-                  LEFT JOIN utilisateur gm ON gm.id_utilisateur = s.id_game_master"
+        $sql = 'SELECT v.id_session, v.id_salle, v.id_game_master, v.date_debut, v.date_fin, v.statut,
+                       v.salle, v.gm_prenom, v.gm_nom, v.groupe, v.option_groupe, v.option_expire_le
+                  FROM v_planning_detaille v'
             . ($where === [] ? '' : ' WHERE ' . implode(' AND ', $where))
-            . ' ORDER BY s.date_debut, sa.nom'
+            . ' ORDER BY v.date_debut, v.salle'
             . (isset($criteria['limit']) ? ' LIMIT ' . max(1, (int) $criteria['limit']) : '');
 
         $statement = $this->database->pdo->prepare($sql);

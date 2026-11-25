@@ -34,7 +34,9 @@
       "php tests/game-master-accounts.php",
       "php tests/client-access.php",
       "php tests/rooms-equipment.php",
-      "php tests/incidents-dashboard.php"
+      "php tests/incidents-dashboard.php",
+      "php tests/api.php",
+      "php tests/sql-advanced.php"
     ]
   }
 }

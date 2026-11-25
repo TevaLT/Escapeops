@@ -72,6 +72,11 @@ jobs:
       - name: Tests contractuels JSON sans BDD
         run: composer test
 
+      # Journal binaire actif par défaut dans MySQL 8.4 : sans ce réglage, le compte de l'application
+      # (non root) ne peut pas créer le trigger de 004_triggers.sql (erreur 1419).
+      - name: Autoriser la création de triggers par le compte de l'application
+        run: mysql -h 127.0.0.1 -uroot -prootpass -e "SET GLOBAL log_bin_trust_function_creators = 1"
+
       - name: Initialiser MySQL (migrations + jeu de données)
         run: composer db:reset
 
@@ -110,6 +115,24 @@ jobs:
           curl -fsS http://127.0.0.1:8080/reservations/e5ca9e0900000000000000000000a003 | grep -q 'Option en cours'
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/reservations/00000000000000000000000000000000)" = "404"
           test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8080/reservations/e5ca9e0900000000000000000000a003/confirmer)" = "403"
+
+          # Épic 4 : API JSON (US-51 à US-53)
+          curl -fsS 'http://127.0.0.1:8080/api/sessions?roomId=2' | grep -q '"disponibilite":"EN_OPTION"'
+          test "$(curl -sS -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8080/api/sessions?roomId=abc')" = "422"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"sessionId":7,"nomGroupe":"CI","contact":"ci@example.test","nbJoueurs":3}' http://127.0.0.1:8080/api/reservations)" = "201"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"sessionId":7,"nomGroupe":"B","contact":"b@example.test","nbJoueurs":3}' http://127.0.0.1:8080/api/reservations)" = "409"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST -d 'a=b' http://127.0.0.1:8080/api/reservations)" = "415"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:8080/api/incidents)" = "401"
+
+      - name: Vérifier vues, procédure et trigger (US-60 à US-64)
+        run: |
+          q() { mysql -h 127.0.0.1 -ubts -pbtspass escapeops -N -e "$1"; }
+          test "$(q "SELECT COUNT(*) FROM information_schema.VIEWS WHERE TABLE_SCHEMA='escapeops'")" = "2"
+          q "CALL sp_bilan_salle(1)" | grep -q .
+          before=$(q "SELECT COUNT(*) FROM historique_session WHERE id_session = 7")
+          q "UPDATE session SET statut = 'ANNULEE' WHERE id_session = 7"
+          q "UPDATE session SET statut = 'ANNULEE' WHERE id_session = 7"
+          test "$(q "SELECT COUNT(*) FROM historique_session WHERE id_session = 7")" = "$((before + 1))"
 
       - name: Logs en cas d'échec
         if: failure()
