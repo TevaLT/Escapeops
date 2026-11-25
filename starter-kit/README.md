@@ -27,7 +27,7 @@ cp .env.example .env          # PowerShell : Copy-Item .env.example .env
 docker run -d --name escapeops-db -p 127.0.0.1:3306:3306 \
   -e MYSQL_ROOT_PASSWORD=rootpass -e MYSQL_DATABASE=escapeops \
   -e MYSQL_USER=escapeops -e MYSQL_PASSWORD=escapeops \
-  -v escapeops-data:/var/lib/mysql mysql:8.4
+  -v escapeops-data:/var/lib/mysql mysql:8.4 --log-bin-trust-function-creators=1
 
 # 4. Schéma + données de test (efface et reconstruit la base)
 composer db:reset
@@ -44,10 +44,16 @@ Sous **PowerShell**, la commande Docker de l'étape 3 s'écrit avec des `` ` `` 
 docker run -d --name escapeops-db -p 127.0.0.1:3306:3306 `
   -e MYSQL_ROOT_PASSWORD=rootpass -e MYSQL_DATABASE=escapeops `
   -e MYSQL_USER=escapeops -e MYSQL_PASSWORD=escapeops `
-  -v escapeops-data:/var/lib/mysql mysql:8.4
+  -v escapeops-data:/var/lib/mysql mysql:8.4 --log-bin-trust-function-creators=1
 ```
 
 Si le conteneur existe déjà, il suffit de le relancer : `docker start escapeops-db`.
+
+`--log-bin-trust-function-creators=1` permet au compte `escapeops` (non root) de créer le trigger de `004_triggers.sql` : MySQL 8.4 active le journal binaire et refuse sinon `CREATE TRIGGER` (erreur 1419). **Conteneur créé avant le 25/11** : appliquer le réglage une fois pour toutes (mot de passe root : `rootpass`), puis relancer `composer db:reset` :
+
+```bash
+docker exec -it escapeops-db mysql -uroot -p -e "SET PERSIST log_bin_trust_function_creators = 1"
+```
 
 > ⚠ Ces mots de passe (`rootpass`, `escapeops`) et ceux des comptes de test sont des **identifiants de développement**, fictifs, publiés pour la recette. Ne jamais les réutiliser en production. Les vrais paramètres se trouvent dans `.env`, ignoré par Git. `-p 127.0.0.1:3306:3306` limite l'accès à MySQL à la machine locale (avec `-p 3306:3306`, MySQL serait joignable depuis tout le réseau).
 
@@ -58,9 +64,9 @@ Les scripts sont versionnés et appliqués **dans l'ordre** par `composer db:res
 | Fichier | Contenu |
 |---|---|
 | `database/migrations/001_schema.sql` | Tables, clés, contraintes `CHECK` (issues du MCD) |
-| `database/migrations/002_vues.sql` | *(à venir)* `v_planning_detaille`, `v_dashboard_exploitation` |
-| `database/migrations/003_procedures.sql` | *(à venir)* `sp_bilan_salle` |
-| `database/migrations/004_triggers.sql` | *(à venir)* `trg_session_history` |
+| `database/migrations/002_vues.sql` | Vues `v_planning_detaille` (planning, tableau de bord, espace game master, `GET /api/sessions`) et `v_dashboard_exploitation` (état des salles du tableau de bord) |
+| `database/migrations/003_procedures.sql` | Procédure `sp_bilan_salle(id_salle)` : parties terminées / annulées / interrompues et parties depuis le dernier contrôle, appelée par `RoomRepository::bilan()` et affichée sur `/gestion/salles/{id}` |
+| `database/migrations/004_triggers.sql` | Trigger `trg_session_history` : chaque changement de statut d'une session est tracé dans `historique_session` |
 | `database/seed.sql` | Données fictives, avec des dates relatives au jour courant |
 
 Les scripts n'utilisent pas `DELIMITER` : chaque fichier est envoyé en une seule fois au serveur via PDO.
@@ -123,7 +129,7 @@ Connexion : http://127.0.0.1:8080/connexion. Un game master accède à `/espace`
 | `GET /gestion/game-masters/nouveau` · `POST /gestion/game-masters` | Ajouter un game master : prénom, nom, e-mail (identifiant), mot de passe initial (10 caractères minimum, lettre et chiffre, confirmé). Le rôle est toujours `GAME_MASTER` : un champ `role` forgé est ignoré. 422 si e-mail déjà utilisé ou champ invalide, 403 pour un game master |
 | `POST /gestion/incidents/{id}/resoudre` | Résoudre un incident (US-26) |
 
-**API JSON** : `GET /api/health`, `GET /api/rooms`, `GET /api/rooms/{id}` (contrat : [docs/API.md](docs/API.md)).
+**API JSON** : `GET /api/health`, `GET /api/rooms`, `GET /api/rooms/{id}`, `GET /api/sessions?roomId=&date=`, `POST /api/reservations` (option E1), `GET /api/reservations/{jeton}`, `POST /api/reservations/{jeton}/confirmation`, `POST /api/incidents` (personnel connecté). Mêmes services que le site ; contrat, exemples et erreurs : [docs/API.md](docs/API.md).
 
 **Qui fait quoi** (cahier des charges, § 3) : le service vérifie chaque droit, même si la route est déjà protégée.
 
@@ -175,8 +181,10 @@ composer test
 - `tests/client-access.php` : « Mes réservations » : code de suivi (format, alphabet sans caractères ambigus), contact normalisé (casse de l'e-mail, espaces et points du téléphone) ; refus si le contact ou le code est faux, avec le même message ; le client ne voit que ses réservations ; accès séparé du personnel ; « Quitter » ; blocage après 5 échecs pendant 15 min ; historique des parties (à venir / passées, résultat de chaque partie, compteur de parties jouées).
 - `tests/rooms-equipment.php` : salles (US-21 : champs, capacités, nom unique, suppression refusée si la salle est utilisée) et équipements (US-25 : même équipement dans deux salles, critique, doublon refusé, retrait).
 - `tests/incidents-dashboard.php` : incidents (US-26 : déclarant pris dans la session, équipement et session cohérents avec la salle, résolution réservée), fiches game master (US-24), tableau de bord (US-28 : salle bloquée, en partie, disponible).
+- `tests/api.php` : **API JSON** (US-51 à US-54) à travers la vraie application Slim et `routes/api.php` : filtres de `GET /api/sessions` (422 si mal formés, 404 salle inconnue), informations publiques seulement ; option E1 par `POST /api/reservations` (201 + `Location`, 409 pour le groupe B, 422 par champ, 404, 415, 400) ; confirmation dans le délai, puis hors délai (409 `OPTION_EXPIRED`) et créneau libéré ; `POST /api/incidents` 401 sans connexion, 201 pour le personnel, 422 ; 404 JSON sur une adresse inconnue.
+- `tests/sql-advanced.php` : **SQL avancé** (US-60 à US-63) : une ligne d'historique par changement de statut et aucune sinon, bilan de salle avant et après un contrôle, droits du bilan, planning identique à travers la vue, chiffres de la vue du tableau de bord.
 
-Les tests métier utilisent `tests/support/bootstrap.php` : une base SQLite en mémoire au schéma équivalent à `001_schema.sql`, recréée pour chaque fichier. Les vrais services et repositories tournent dessus, sans MySQL.
+Les tests métier utilisent `tests/support/bootstrap.php` : une base SQLite en mémoire au schéma équivalent à `001_schema.sql` (avec les deux vues et une version SQLite du trigger ; la procédure, absente de SQLite, est remplacée par la même requête dans `RoomRepository`), recréée pour chaque fichier. Les vrais services et repositories tournent dessus, sans MySQL.
 
 La CI GitHub Actions (`.github/workflows/starter-kit-check.yml`) lance les tests, reconstruit la base et vérifie les routes.
 

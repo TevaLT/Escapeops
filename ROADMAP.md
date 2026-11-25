@@ -1,6 +1,6 @@
 # Roadmap — EscapeOps
 
-**Semaine :** du lundi 23 au vendredi 27 novembre 2026 · **Mise à jour :** mercredi 25/11, midi
+**Semaine :** du lundi 23 au vendredi 27 novembre 2026 · **Mise à jour :** mercredi 25/11, soir
 **Détail des tickets :** [BACKLOG.md](BACKLOG.md) · **Suivi au jour le jour :** [docs/journal.md](docs/journal.md)
 
 > Principe : un produit **testable et poussé chaque soir**. On ne commence pas une étape tant que la précédente n'est pas verte.
@@ -16,37 +16,41 @@
 | Mardi | Épics 1-2 — authentification, rôles, CSRF, socle métier, tableau de bord | ✅ |
 | Mercredi matin | Épic 3 — règles E1, E5, E10 + tests | ✅ 🟢 |
 | Mercredi | Épic 6 — évolution client EV-TEV-01 (US-70, US-71) | ✅ |
-| Hors backlog | Création de comptes GM par le responsable · « Mes réservations » (code de suivi + historique) | ✅ |
-| | `composer test` | 358 vérifications vertes |
+| Hors backlog | Création de comptes GM par le responsable · « Mes réservations » (code de suivi + historique) | ✅ (PR #1, fusionnée) |
+| Mercredi après-midi | Épic 4 — API JSON (US-51 à US-55) | ✅ |
+| Mercredi soir | Épic 5 — SQL avancé (US-60 à US-64) | ✅ (reste les captures US-65) |
+| | `composer test` | 14 suites, 431 vérifications vertes |
 
-⚠️ **Dette immédiate :** tout le travail depuis le commit `b9af613` (évolution, comptes GM, accès client) n'est **pas encore commité**. Il faut le commiter avant d'attaquer l'API, sous forme de commits séparés qui citent les ID des tickets.
+⚠️ **À faire en premier jeudi matin :**
+1. ✅ Trigger autorisé sur la base locale, `composer db:reset` complet
+2. Commiter la branche `feature/api-us-51-55` (API + SQL avancé), pousser, vérifier que la CI passe, ouvrir la PR.
 
 ---
 
-## Jalon 1 — Mercredi après-midi : API JSON (Épic 4)
+## Jalon 1 — Mercredi après-midi : API JSON (Épic 4) ✅
 
 | # | Tâche | Ticket |
 |---|---|---|
-| 1 | Commiter le travail en attente (évolution / comptes GM / accès client) | — |
-| 2 | `GET /api/sessions?roomId=` avec l'état et la disponibilité (E1 calculée) | US-51 |
-| 3 | `POST /api/reservations` → réutilise `ReservationService::placeOption` · 201 / 409 / 422 | US-52, US-54 |
-| 4 | `POST /api/incidents` · 201 / 422 / 401 / 403 | US-53, US-54 |
-| 5 | Contrat API dans le README : exemples de requêtes et d'erreurs | US-55 (S) |
-| 6 | Mettre à jour README, BACKLOG, CSV Notion et journal, puis pousser | — |
+| 1 | ✅ Commiter le travail en attente (évolution / comptes GM / accès client) : PR #1 | — |
+| 2 | ✅ `GET /api/sessions?roomId=&date=` avec l'état et la disponibilité (E1 calculée) | US-51 |
+| 3 | ✅ `POST /api/reservations` → réutilise `ReservationService::placeOption` · 201 / 409 / 422, plus suivi et confirmation par jeton | US-52, US-54 |
+| 4 | ✅ `POST /api/incidents` · 201 / 422 / 401 / 403 | US-53, US-54 |
+| 5 | ✅ Contrat complet dans `starter-kit/docs/API.md` | US-55 (S) |
+| 6 | ✅ README, BACKLOG, CSV Notion et journal à jour · 🟡 commit et push à faire | — |
 
 **✅ Jalon atteint si :** les 3 règles + 1 collection, 1 détail et 1 écriture en API, sans aucune règle dupliquée dans le contrôleur API.
 
 ---
 
-## Jalon 2 — Jeudi matin : SQL avancé (Épic 5)
+## Jalon 2 — SQL avancé (Épic 5) : avancé à mercredi soir ✅ (sauf captures)
 
 | # | Tâche | Ticket |
 |---|---|---|
-| 1 | `002_vues.sql` : `v_planning_detaille` (planning + `GET /api/sessions`) et `v_dashboard_exploitation` (tableau de bord) | US-62, US-63 |
-| 2 | `003_procedures.sql` : `sp_bilan_salle(room_id)`, appelée dans `RoomRepository` et affichée sur la fiche salle | US-61 |
-| 3 | `004_triggers.sql` : `trg_session_history` (AFTER UPDATE, rien si le statut ne change pas) | US-60 |
-| 4 | Reconstruire sur une **base vierge** avec le client `mysql` (pas PDO, à cause de `DELIMITER`), ordre écrit dans le README | US-64 |
-| 5 | Preuves : trigger avant/après, `CALL`, extrait du repository, page qui dépend de chaque vue | US-65 |
+| 1 | ✅ `002_vues.sql` : `v_planning_detaille` (planning + `GET /api/sessions`) et `v_dashboard_exploitation` (tableau de bord) | US-62, US-63 |
+| 2 | ✅ `003_procedures.sql` : `sp_bilan_salle(room_id)`, appelée dans `RoomRepository` et affichée sur la fiche salle | US-61 |
+| 3 | ✅ `004_triggers.sql` : `trg_session_history` (AFTER UPDATE, rien si le statut ne change pas), vérifié sur MySQL | US-60 |
+| 4 | ✅ Reconstruire sur une **base vierge** (`composer db:reset` : PDO envoie chaque fichier en une fois, pas besoin de `DELIMITER`), ordre écrit dans le README | US-64 |
+| 5 | Jeudi matin · Preuves : trigger avant/après, `CALL`, extrait du repository, page qui dépend de chaque vue | US-65 |
 
 **✅ Jalon atteint si :** la base se reconstruit de zéro et chaque objet SQL est utilisé par une vraie page.
 
@@ -99,6 +103,7 @@
 |---|---|
 | Gros volume de travail non commité | Commiter avant l'API, puis à chaque ticket |
 | API qui duplique les règles | Les contrôleurs API appellent les mêmes services que le HTML (US-54) |
-| `DELIMITER` refusé par PDO | Migrations SQL importées avec le client `mysql` |
+| `DELIMITER` refusé par PDO | Fichiers sans `DELIMITER`, envoyés en une fois par `bin/db-reset.php` (vérifié pour la procédure) |
+| Trigger refusé par MySQL (erreur 1419, journal binaire) | `log_bin_trust_function_creators = 1` : option `docker run` dans le README, étape dans la CI, `SET PERSIST` pour le conteneur existant |
 | Vues qui cassent les pages existantes | Brancher une vue à la fois, en gardant `composer test` vert |
 | Débordement de jeudi sur vendredi | Couper l'extension en premier, jamais l'incident ni la recette |
