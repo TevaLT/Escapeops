@@ -52,6 +52,8 @@ Les fois suivantes, le conteneur existe déjà : `docker start escapeops-db` suf
 | [backlog-notion.csv](backlog-notion.csv) | Le même backlog, à importer dans Notion |
 | [docs/journal.md](docs/journal.md) | Journal de bord quotidien |
 | [starter-kit/docs/API.md](starter-kit/docs/API.md) | Contrat de l'API JSON |
+| [docs/preuves/US-65.md](docs/preuves/US-65.md) | Preuves du SQL avancé : trigger avant/après, CALL, vues et pages qui en dépendent |
+| [docs/preuves/](docs/preuves/) | Captures de preuve (MCD avant/après « Mes réservations », SQL avancé) |
 | [starter-kit/docs/ARCHITECTURE.md](starter-kit/docs/ARCHITECTURE.md) | Architecture du code et trajet d'une requête |
 
 Ressources du cadre de projet : [docs/](docs/) (guides de la semaine), [sujets/](sujets/), [templates/](templates/) (recette, rapport d'incident, démonstration…).
@@ -66,7 +68,7 @@ Ressources du cadre de projet : [docs/](docs/) (guides de la semaine), [sujets/]
 | Mercredi 25 (matin) | 3 — Règles E1, E5, E10, avec leurs refus et leurs tests | ✅ |
 | Mercredi 25 | 6 — Évolution client EV-TEV-01 « checklist et game master obligatoires » (issue #8) : analyse, code, tests | ✅ |
 | Mercredi 25 (après-midi) | 4 — API JSON (US-51 à US-55) : sessions, option E1, confirmation, incidents, contrat documenté | ✅ |
-| Mercredi 25 (soir) | 5 — SQL avancé : 2 vues, procédure `sp_bilan_salle`, trigger `trg_session_history` | ✅ reste les captures de preuve (US-65) |
+| Mercredi 25 (soir) | 5 — SQL avancé : 2 vues, procédure `sp_bilan_salle`, trigger `trg_session_history` | ✅ preuves dans [docs/preuves/US-65.md](docs/preuves/US-65.md) |
 | Jeudi 26 | 6 — Incident imposé (US-72) · première extension (E2) | à faire |
 | Vendredi 27 | 7 — Livraison et démonstration | à faire |
 

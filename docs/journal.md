@@ -348,3 +348,18 @@ Vérification sur MySQL : trg_session_history présent (AFTER UPDATE ON session)
   v_dashboard_exploitation et CALL sp_bilan_salle(1) répondent ; base remise à zéro ensuite (db:reset)
 Preuves : MCD avant/après « Mes réservations » dans docs/preuves/
 ```
+
+### Preuves US-65
+
+```text
+Réalisé : 12 captures dans docs/preuves/us-65/, index docs/preuves/US-65.md
+  - trigger déclenché depuis l'application (le responsable annule la session 3) : avant / après / condition fausse
+  - CALL sp_bilan_salle, extrait de RoomRepository::bilan, page /gestion/salles/1
+  - les 2 vues dans MySQL, extraits de SessionRepository::search et DashboardRepository::roomStatus,
+    pages /gestion/sessions et /gestion, GET /api/sessions
+Problèmes rencontrés :
+  - un UPDATE fait dans le client mysql date l'historique en UTC (13 h 44 au lieu de 14 h 44) : le client
+    n'a pas le fuseau de l'application. Déclenché depuis l'application, l'heure est juste (Europe/Paris)
+  - le client mysql sortait « Énigme » en latin1 : --default-character-set=utf8mb4
+Base remise à zéro ensuite (composer db:reset)
+```

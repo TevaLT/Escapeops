@@ -18,7 +18,7 @@
 | Mercredi | Épic 6 — évolution client EV-TEV-01 (US-70, US-71) | ✅ |
 | Hors backlog | Création de comptes GM par le responsable · « Mes réservations » (code de suivi + historique) | ✅ (PR #1, fusionnée) |
 | Mercredi après-midi | Épic 4 — API JSON (US-51 à US-55) | ✅ |
-| Mercredi soir | Épic 5 — SQL avancé (US-60 à US-64) | ✅ (reste les captures US-65) |
+| Mercredi soir | Épic 5 — SQL avancé (US-60 à US-65) | ✅ preuves dans `docs/preuves/US-65.md` |
 | | `composer test` | 14 suites, 431 vérifications vertes |
 
 ⚠️ **À faire en premier jeudi matin :**
@@ -42,7 +42,7 @@
 
 ---
 
-## Jalon 2 — SQL avancé (Épic 5) : avancé à mercredi soir ✅ (sauf captures)
+## Jalon 2 — SQL avancé (Épic 5) : avancé à mercredi soir ✅
 
 | # | Tâche | Ticket |
 |---|---|---|
@@ -50,7 +50,7 @@
 | 2 | ✅ `003_procedures.sql` : `sp_bilan_salle(room_id)`, appelée dans `RoomRepository` et affichée sur la fiche salle | US-61 |
 | 3 | ✅ `004_triggers.sql` : `trg_session_history` (AFTER UPDATE, rien si le statut ne change pas), vérifié sur MySQL | US-60 |
 | 4 | ✅ Reconstruire sur une **base vierge** (`composer db:reset` : PDO envoie chaque fichier en une fois, pas besoin de `DELIMITER`), ordre écrit dans le README | US-64 |
-| 5 | Jeudi matin · Preuves : trigger avant/après, `CALL`, extrait du repository, page qui dépend de chaque vue | US-65 |
+| 5 | ✅ Preuves (`docs/preuves/US-65.md`) : trigger avant/après, `CALL`, extrait du repository, page qui dépend de chaque vue | US-65 |
 
 **✅ Jalon atteint si :** la base se reconstruit de zéro et chaque objet SQL est utilisé par une vraie page.
 
