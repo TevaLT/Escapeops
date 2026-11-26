@@ -80,9 +80,18 @@ final class ReservationRepository
     /**
      * Réservation retrouvée par le lien secret du groupe, avec sa session et sa salle.
      */
-    public function findByToken(string $token): ?array
+    /**
+     * Avec $lock (SELECT ... FOR UPDATE), la ligne de la réservation et celle de sa session (jointure) sont
+     * verrouillées jusqu'à la fin de la transaction, et la lecture renvoie la dernière version validée.
+     * Sans verrou, MySQL (REPEATABLE READ) lirait l'instantané pris à la première lecture de la transaction.
+     */
+    public function findByToken(string $token, bool $lock = false): ?array
     {
-        $statement = $this->database->pdo->prepare(self::WITH_SESSION . ' WHERE r.jeton = :jeton');
+        $statement = $this->database->pdo->prepare(
+            self::WITH_SESSION . ' WHERE r.jeton = :jeton'
+            // SQLite (tests) ne connaît pas FOR UPDATE : il verrouille déjà toute la base pendant une transaction.
+            . ($lock && $this->database->type === 'mysql' ? ' FOR UPDATE' : '')
+        );
         $statement->execute(['jeton' => $token]);
         $row = $statement->fetch(PDO::FETCH_ASSOC);
 
@@ -112,9 +121,25 @@ final class ReservationRepository
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function updateStatus(int $id, string $status): void
+    /**
+     * Change le statut seulement si la ligne est encore dans l'état lu par le service ($from) et, avec
+     * $activeAt, si l'option court encore à cet instant (date_expiration > $activeAt, même borne que
+     * ReservationOption::isActive). Renvoie false si aucune ligne n'a été modifiée : une autre requête
+     * l'a changée entre la lecture et l'écriture.
+     */
+    public function changeStatusIf(int $id, string $from, string $to, ?DateTimeImmutable $activeAt = null): bool
     {
-        $this->database->update('reservation', ['statut' => $status], ['id_reservation' => $id]);
+        $sql = 'UPDATE reservation SET statut = :vers WHERE id_reservation = :id AND statut = :depuis';
+        $params = ['vers' => $to, 'id' => $id, 'depuis' => $from];
+        if ($activeAt !== null) {
+            $sql .= ' AND date_expiration > :maintenant';
+            $params['maintenant'] = $activeAt->format('Y-m-d H:i:s');
+        }
+
+        $statement = $this->database->pdo->prepare($sql);
+        $statement->execute($params);
+
+        return $statement->rowCount() === 1;
     }
 
     public function forSession(int $sessionId): array

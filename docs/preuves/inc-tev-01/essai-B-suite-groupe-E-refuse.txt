@@ -1,0 +1,43 @@
+=== Groupe E sur la session 3 pendant l'option active de D (refus attendu 409) ===
+--- GET /sessions/3/reserver ---
+HTTP 200
+← Le Cabinet des Ombres
+Réservation
+Le Cabinet des Ombres
+jeudi 26 novembre · 19 h 20 → 20 h 20 · de 2 à 6 joueurs
+Ce créneau est en option jusqu'à 09 h 39 : réessayez après cette heure, il sera libéré si l'option n'est pas confirmée.
+Voir les autres créneaux
+(champ _csrf présent sur cette page : 0)
+--- POST /sessions/3/reserver forgé (jeton CSRF valide de la même session navigateur) ---
+HTTP 409
+← Le Cabinet des Ombres
+Réservation
+Le Cabinet des Ombres
+jeudi 26 novembre · 19 h 20 → 20 h 20 · de 2 à 6 joueurs
+Ce créneau est en option jusqu'à 09 h 39 : réessayez après cette heure, il sera libéré si l'option n'est pas confirmée.
+Voir les autres créneaux
+--- POST /api/reservations groupe E ---
+{"error":"SLOT_UNAVAILABLE","message":"Ce créneau est en option jusqu'à 09 h 39 : réessayez après cette heure, il sera libéré si l'option n'est pas confirmée.","disponibilite":"EN_OPTION"}
+HTTP 409
+--- BDD ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:25:04 | 2026-11-26 08:25:04 |
++---------------------+---------------------+
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
+| id | id_session | nom_groupe              | statut     | expires_at          | created_at          | jeton   | etat_calcule       |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
+|  7 |          3 | Groupe B (expiree)      | EN_ATTENTE | 2026-11-26 09:23:32 | 2026-11-26 09:08:32 | 7ab4…   | EXPIREE (calculé)  |
+|  8 |          3 | Groupe D (autre groupe) | EN_ATTENTE | 2026-11-26 09:39:50 | 2026-11-26 09:24:50 | 2ace…   | ACTIVE             |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+

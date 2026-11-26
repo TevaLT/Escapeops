@@ -1,0 +1,114 @@
+=== Essai R : attente réelle de 15 min 20 s, onglet ouvert, aucune modification SQL (session 11) ===
+--- BDD avant pose ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:23:02 | 2026-11-26 08:23:02 |
++---------------------+---------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|         11 | 2026-11-27 14:00:00 | 2026-11-27 15:00:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+POST /sessions/11/reserver -> HTTP/1.1 303 See Other ; Location: /reservations/0438…
+--- GET /reservations/0438… (onglet, après redirection) 09:23:02 ---
+HTTP 200
+Option posée pour « Groupe R (onglet ouvert) » jusqu'à 09 h 38. Confirmez-la avant cette heure, sinon le créneau sera libéré. Votre code de suivi : W2..-.....
+← Le Cabinet des Ombres
+Ma réservation
+Le Cabinet des Ombres
+vendredi 27 novembre · 14 h 00 → 15 h 00
+Groupe : Groupe R (onglet ouvert) (4 joueurs)
+État : Option en cours
+Code de suivi : W2..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+Le créneau vous est gardé jusqu'à 09 h 38. Passé cette heure, l'option expire et le créneau est rendu aux autres groupes.
+[]                []Confirmer la réservation
+[]                []Libérer le créneau
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.
+--- BDD après pose ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:23:03 | 2026-11-26 08:23:03 |
++---------------------+---------------------+
++----+------------+--------------------------+------------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe               | statut     | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+--------------------------+------------+---------------------+---------------------+---------+--------------+
+|  5 |         11 | Groupe R (onglet ouvert) | EN_ATTENTE | 2026-11-26 09:38:02 | 2026-11-26 09:23:02 | 0438…   | ACTIVE       |
++----+------------+--------------------------+------------+---------------------+---------------------+---------+--------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|         11 | 2026-11-27 14:00:00 | 2026-11-27 15:00:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+
+--- attente 920 s (15 min 20 s) à partir de 09:23:03 ---
+--- BDD juste avant le clic Confirmer ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:38:23 | 2026-11-26 08:38:23 |
++---------------------+---------------------+
++----+------------+--------------------------+------------+---------------------+---------------------+---------+--------------------+
+| id | id_session | nom_groupe               | statut     | expires_at          | created_at          | jeton   | etat_calcule       |
++----+------------+--------------------------+------------+---------------------+---------------------+---------+--------------------+
+|  5 |         11 | Groupe R (onglet ouvert) | EN_ATTENTE | 2026-11-26 09:38:02 | 2026-11-26 09:23:02 | 0438…   | EXPIREE (calculé)  |
++----+------------+--------------------------+------------+---------------------+---------------------+---------+--------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|         11 | 2026-11-27 14:00:00 | 2026-11-27 15:00:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+--- POST /reservations/0438…/confirmer (jeton CSRF de l'onglet) 09:38:23 ---
+HTTP/1.1 409 Conflict
+← Le Cabinet des Ombres
+Ma réservation
+Le Cabinet des Ombres
+vendredi 27 novembre · 14 h 00 → 15 h 00
+Groupe : Groupe R (onglet ouvert) (4 joueurs)
+État : Option expirée
+Code de suivi : W2..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+Votre option a expiré à 09 h 38 : la réservation n'est pas confirmée. Si le créneau est encore libre, vous pouvez poser une nouvelle option.
+Votre option a expiré à 09 h 38 sans être confirmée : le créneau n'est plus gardé pour vous.
+Voir les créneaux disponibles
+[]                []Libérer le créneau
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.
+--- BDD après le clic ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:38:24 | 2026-11-26 08:38:24 |
++---------------------+---------------------+
++----+------------+--------------------------+------------+---------------------+---------------------+---------+--------------------+
+| id | id_session | nom_groupe               | statut     | expires_at          | created_at          | jeton   | etat_calcule       |
++----+------------+--------------------------+------------+---------------------+---------------------+---------+--------------------+
+|  5 |         11 | Groupe R (onglet ouvert) | EN_ATTENTE | 2026-11-26 09:38:02 | 2026-11-26 09:23:02 | 0438…   | EXPIREE (calculé)  |
++----+------------+--------------------------+------------+---------------------+---------------------+---------+--------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|         11 | 2026-11-27 14:00:00 | 2026-11-27 15:00:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+--- GET /api/sessions?roomId=1&date=2026-11-27 ---
+[{"id":9,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-27 10:00:00","fin":"2026-11-27 11:00:00","statut":"PREVUE","disponibilite":"COMPLET","optionJusqua":null},{"id":10,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-27 12:00:00","fin":"2026-11-27 13:00:00","statut":"PREVUE","disponibilite":"COMPLET","optionJusqua":null},{"id":11,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-27 14:00:00","fin":"2026-11-27 15:00:00","statut":"PREVUE","disponibilite":"LIBRE","optionJusqua":null}]

@@ -1,0 +1,564 @@
+INC-TEV-01 — après correction — sorties brutes sur le VRAI MySQL (jeudi 26/11/2026, 09 h 57 – 10 h 04, heure de Paris)
+Jetons tronqués à 4 caractères (xxxx…) ; codes de suivi masqués (XX..-....) ; cookies et _csrf jamais recopiés.
+Serveurs : php -S 127.0.0.1:8083 et 127.0.0.1:8084 -t public public/router.php (même base MySQL).
+
+=== Création des sessions de test (responsable, formulaire POST /gestion/sessions) ===
+POST /gestion/sessions 2026-11-27T10:00 -> 303 /gestion/sessions
+POST /gestion/sessions 2026-11-27T12:00 -> 303 /gestion/sessions
+POST /gestion/sessions 2026-11-27T14:00 -> 303 /gestion/sessions
+POST /gestion/sessions 2026-11-27T16:00 -> 303 /gestion/sessions
+POST /gestion/sessions 2026-11-27T18:00 -> 303 /gestion/sessions
+POST /gestion/sessions 2026-11-27T20:00 -> 303 /gestion/sessions
+
+=== Essai (a) : option valide confirmée par l'interface (session 9, 27/11 10 h 00) ===
+POST /sessions/9/reserver -> 303 ; Location: /reservations/a893…
+--- GET /reservations/a893… (onglet) ---
+HTTP 200
+Ma réservation · Le Cabinet des Ombres · Les Archives Obscures
+Les Archives Obscures
+Nos salles
+Mes réservations
+Espace personnel
+Option posée pour « Groupe A (valide) » jusqu'à 10 h 13. Confirmez-la avant cette heure, sinon le créneau sera libéré. Votre code de suivi : 5H..-.....
+← Le Cabinet des Ombres
+Ma réservation
+Le Cabinet des Ombres
+vendredi 27 novembre · 10 h 00 → 11 h 00
+Groupe : Groupe A (valide) (4 joueurs)
+État : Option en cours
+Code de suivi : 5H..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+Le créneau vous est gardé jusqu'à 10 h 13. Passé cette heure, l'option expire et le créneau est rendu aux autres groupes.
+[]                Confirmer la réservation
+[]                Libérer le créneau
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.
+EscapeOps · projet BTS SIO SLAM · client fictif « Les Archives Obscures » · aucun paiement en ligne
+--- BDD avant ---
++----+------------+-------------------+------------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe        | statut     | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+-------------------+------------+---------------------+---------------------+---------+--------------+
+|  5 |          9 | Groupe A (valide) | EN_ATTENTE | 2026-11-26 10:13:47 | 2026-11-26 09:58:47 | a893…   | ACTIVE       |
++----+------------+-------------------+------------+---------------------+---------------------+---------+--------------+
+POST /reservations/a893�/confirmer -> 303 ; Location: http://127.0.0.1:8083/reservations/a893…
+--- GET après redirection ---
+HTTP 200
+Réservation confirmée : Le Cabinet des Ombres, le vendredi 27 novembre · 10 h 00. À bientôt !
+État : Confirmée
+<title>Ma réservation · Le Cabinet des Ombres · Les Archives Obscures
+--- BDD après ---
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe        | statut    | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
+|  5 |          9 | Groupe A (valide) | CONFIRMEE | 2026-11-26 10:13:47 | 2026-11-26 09:58:47 | a893…   | CONFIRMEE    |
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
+
+=== Essai (e) : double confirmation (réservation A, déjà CONFIRMEE) ===
+POST /reservations/a893.../confirmer (2e clic, onglet initial, _csrf valide) -> 409 
+<title>Réservation déjà confirmée · Les Archives Obscures
+Ma réservation
+Réservation déjà confirmée
+Cette réservation est déjà confirmée.
+Le Cabinet des Ombres    vendredi 27 novembre · 10 h 00 → 11 h 00
+Groupe : Groupe A (valide) (4 joueurs)
+État : Confirmée
+Code de suivi : 5H..-....
+POST /api/reservations/a893.../confirmation -> 409
+{"error":"RESERVATION_CONFLICT","message":"Cette réservation est déjà confirmée.","etat":"CONFIRMEE"}
+--- BDD après ---
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe        | statut    | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
+|  5 |          9 | Groupe A (valide) | CONFIRMEE | 2026-11-26 10:13:47 | 2026-11-26 09:58:47 | a893…   | CONFIRMEE    |
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
+
+=== Essai (b) : option expirée, confirmation par l'interface (session 10, 27/11 12 h 00) ===
+POST /sessions/10/reserver -> 303 ; Location: /reservations/eee9…
+GET /reservations/eee9... (onglet, bouton Confirmer charge) -> HTTP 200
+bouton Confirmer present : 1
+--- BDD après pose ---
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe         | statut     | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------+
+|  6 |         10 | Groupe B (expiree) | EN_ATTENTE | 2026-11-26 10:14:16 | 2026-11-26 09:59:16 | eee9…   | ACTIVE       |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------+
+--- Vieillissement (client mysql, fuseau de l'application) ---
+SET time_zone='Europe/Paris'; UPDATE reservation SET date_creation = NOW() - INTERVAL 16 MINUTE, date_expiration = NOW() - INTERVAL 1 MINUTE WHERE jeton = 'eee9…' AND statut = 'EN_ATTENTE';
++------------------+
+| lignes_modifiees |
++------------------+
+|                1 |
++------------------+
+--- BDD avant confirmation ---
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
+| id | id_session | nom_groupe         | statut     | expires_at          | created_at          | jeton   | etat_calcule      |
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
+|  6 |         10 | Groupe B (expiree) | EN_ATTENTE | 2026-11-26 09:58:16 | 2026-11-26 09:43:16 | eee9…   | EXPIREE (calcule) |
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
++------------+----------+----------------+---------------------+---------------------+--------+
+| id_session | id_salle | id_game_master | date_debut          | date_fin            | statut |
++------------+----------+----------------+---------------------+---------------------+--------+
+|         10 |        1 |           NULL | 2026-11-27 12:00:00 | 2026-11-27 13:00:00 | PREVUE |
++------------+----------+----------------+---------------------+---------------------+--------+
+POST /reservations/eee9.../confirmer (onglet ancien, _csrf de l'onglet) -> 409 redirect=[]
+<title>Réservation non enregistrée : option expirée · Les Archives Obscures
+--- texte visible ---
+Ma réservation
+Réservation non enregistrée : option expirée
+Votre option a expiré à 09 h 58 : la réservation n'a pas été enregistrée.
+Le créneau est encore libre : vous pouvez poser une nouvelle option.
+Poser une nouvelle option
+Le Cabinet des Ombres    vendredi 27 novembre · 12 h 00 → 13 h 00
+Groupe : Groupe B (expiree) (4 joueurs)
+État : Option expirée
+Code de suivi : CG..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.
+--- liens et formulaires de la page ---
+<a class="button" href="/sessions/10/reserver">Poser une nouvelle option</a>
+nb occurrences 'a expiré' : 1
+POST /api/reservations/eee9.../confirmation -> 409
+{"error":"OPTION_EXPIRED","message":"Votre option a expiré à 09 h 58 : la réservation n'a pas été enregistrée.","etat":"EXPIREE"}
+--- BDD après ---
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
+| id | id_session | nom_groupe         | statut     | expires_at          | created_at          | jeton   | etat_calcule      |
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
+|  6 |         10 | Groupe B (expiree) | EN_ATTENTE | 2026-11-26 09:58:16 | 2026-11-26 09:43:16 | eee9…   | EXPIREE (calcule) |
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+{"id":10,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-27 12:00:00","fin":"2026-11-27 13:00:00","statut":"PREVUE","disponibilite":"LIBRE","optionJusqua":null}
+
+=== Essai (c) : option expirée, créneau repris par un autre groupe (session 11, 27/11 14 h 00) ===
+POST /sessions/11/reserver -> 303 ; Location: /reservations/567e…
+GET /reservations/567e... (onglet) -> HTTP 200
+boutons sur l'onglet initial : Confirmer la réservation|Libérer le créneau|
+--- Vieillissement ---
+SET time_zone='Europe/Paris'; UPDATE reservation SET date_creation = NOW() - INTERVAL 16 MINUTE, date_expiration = NOW() - INTERVAL 1 MINUTE WHERE jeton = '567e…' AND statut = 'EN_ATTENTE';
++------------------+
+| lignes_modifiees |
++------------------+
+|                1 |
++------------------+
+--- Groupe D pose son option par l'API ---
+POST /api/reservations (session 11, groupe D) -> 422 ; 
+{"error":"VALIDATION_ERROR","message":"Données invalides.","details":{"nomGroupe":"Indiquez le nom de votre groupe.","nbJoueurs":"Cette salle accueille de 2 à 6 joueurs."}}
+--- BDD après la prise de D ---
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
+| id | id_session | nom_groupe         | statut     | expires_at          | created_at          | jeton   | etat_calcule      |
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
+|  7 |         11 | Groupe C (expiree) | EN_ATTENTE | 2026-11-26 09:58:35 | 2026-11-26 09:43:35 | 567e…   | EXPIREE (calcule) |
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
+--- GET /reservations/567e... (page de C) ---
+HTTP 200
+<title>Ma réservation · Le Cabinet des Ombres · Les Archives Obscures
+Ma réservation
+Le Cabinet des Ombres
+Votre option a expiré à 09 h 58 sans être confirmée : le créneau n'est plus gardé pour vous.
+Le créneau est encore libre : vous pouvez poser une nouvelle option.
+Poser une nouvelle option
+vendredi 27 novembre · 14 h 00 → 15 h 00
+Groupe : Groupe C (expiree) (4 joueurs)
+État : Option expirée
+Code de suivi : BQ..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.
+formulaires : []
+bouton 'Libérer le créneau' present : 0
+--- POST forgé d'annulation, _csrf valide de l'onglet ---
+POST /reservations/567e.../annuler -> 409 redirect=[]
+<title>Annulation refusée : option expirée · Les Archives Obscures
+Ma réservation
+Annulation refusée : option expirée
+Votre option a expiré à 09 h 58 : elle ne vous gardait déjà plus le créneau, il n'y avait rien à libérer.
+Le créneau est encore libre : vous pouvez poser une nouvelle option.
+Poser une nouvelle option
+Le Cabinet des Ombres    vendredi 27 novembre · 14 h 00 → 15 h 00
+Groupe : Groupe C (expiree) (4 joueurs)
+État : Option expirée
+--- BDD après ---
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
+| id | id_session | nom_groupe         | statut     | expires_at          | created_at          | jeton   | etat_calcule      |
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
+|  7 |         11 | Groupe C (expiree) | EN_ATTENTE | 2026-11-26 09:58:35 | 2026-11-26 09:43:35 | 567e…   | EXPIREE (calcule) |
++----+------------+--------------------+------------+---------------------+---------------------+---------+-------------------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+{"id":11,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-27 14:00:00","fin":"2026-11-27 15:00:00","statut":"PREVUE","disponibilite":"LIBRE","optionJusqua":null}
+
+=== Essai (c, suite) : le groupe D reprend le créneau (2e appel, noms de champs du contrat) ===
+POST /api/reservations (session 11, groupe D) -> 201 ; Location: /api/reservations/9151…
+{"jeton":"9151…","codeSuivi":"(masque)","sessionId":11,"salle":"Le Cabinet des Ombres","debut":"2026-11-27 14:00:00","statut":"EN_ATTENTE","expiration":"2026-11-26 10:14:55"}
+--- BDD après la prise de D ---
++----+------------+-------------------------+------------+---------------------+---------------------+---------+-------------------+
+| id | id_session | nom_groupe              | statut     | expires_at          | created_at          | jeton   | etat_calcule      |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+-------------------+
+|  7 |         11 | Groupe C (expiree)      | EN_ATTENTE | 2026-11-26 09:58:35 | 2026-11-26 09:43:35 | 567e…   | EXPIREE (calcule) |
+|  8 |         11 | Groupe D (autre groupe) | EN_ATTENTE | 2026-11-26 10:14:55 | 2026-11-26 09:59:55 | 9151…   | ACTIVE            |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+-------------------+
+--- GET /reservations/567e... (page de C) ---
+HTTP 200
+<title>Ma réservation · Le Cabinet des Ombres · Les Archives Obscures
+Ma réservation
+Le Cabinet des Ombres
+Votre option a expiré à 09 h 58 sans être confirmée : le créneau n'est plus gardé pour vous.
+Le créneau a été repris par un autre groupe, qui le garde en option jusqu'à 10 h 14 : il sera de nouveau proposé si cette option n'est pas confirmée.
+Voir les autres créneaux
+vendredi 27 novembre · 14 h 00 → 15 h 00
+Groupe : Groupe C (expiree) (4 joueurs)
+État : Option expirée
+Code de suivi : BQ..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.
+liens bouton : <a class="button" href="/salles/1">Voir les autres créneaux</a>
+formulaires : []
+bouton 'Libérer le créneau' present : 0 ; bouton 'Poser une nouvelle option' present : 0
+--- POST forgé d'annulation, _csrf valide de l'onglet ---
+POST /reservations/567e.../annuler -> 409 redirect=[]
+<title>Annulation refusée : option expirée · Les Archives Obscures
+Ma réservation
+Annulation refusée : option expirée
+Votre option a expiré à 09 h 58 : elle ne vous gardait déjà plus le créneau, il n'y avait rien à libérer.
+Le créneau a été repris par un autre groupe, qui le garde en option jusqu'à 10 h 14 : il sera de nouveau proposé si cette option n'est pas confirmée.
+Voir les autres créneaux
+Le Cabinet des Ombres    vendredi 27 novembre · 14 h 00 → 15 h 00
+Groupe : Groupe C (expiree) (4 joueurs)
+État : Option expirée
+--- POST forgé de confirmation, _csrf valide ---
+POST /reservations/567e.../confirmer -> 409 redirect=[]
+<title>Réservation non enregistrée : option expirée · Les Archives Obscures
+Votre option a expiré à 09 h 58 : la réservation n'a pas été enregistrée.
+--- BDD après ---
++----+------------+-------------------------+------------+---------------------+---------------------+---------+-------------------+
+| id | id_session | nom_groupe              | statut     | expires_at          | created_at          | jeton   | etat_calcule      |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+-------------------+
+|  7 |         11 | Groupe C (expiree)      | EN_ATTENTE | 2026-11-26 09:58:35 | 2026-11-26 09:43:35 | 567e…   | EXPIREE (calcule) |
+|  8 |         11 | Groupe D (autre groupe) | EN_ATTENTE | 2026-11-26 10:14:55 | 2026-11-26 09:59:55 | 9151…   | ACTIVE            |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+-------------------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+
+{"id":11,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-27 14:00:00","fin":"2026-11-27 15:00:00","statut":"PREVUE","disponibilite":"EN_OPTION","optionJusqua":"2026-11-26 10:14:55"}
+
+=== Essai (d) : annulation d'une option valide (session 12, 27/11 16 h 00) ===
+POST /sessions/12/reserver -> 303 ; Location: /reservations/ee8a…
+GET /reservations/ee8a... -> HTTP 200
+bouton 'Libérer le créneau' present : 1
+--- BDD avant ---
++----+------------+-------------------+------------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe        | statut     | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+-------------------+------------+---------------------+---------------------+---------+--------------+
+|  9 |         12 | Groupe E (annule) | EN_ATTENTE | 2026-11-26 10:15:06 | 2026-11-26 10:00:06 | ee8a…   | ACTIVE       |
++----+------------+-------------------+------------+---------------------+---------------------+---------+--------------+
+{"id":12,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-27 16:00:00","fin":"2026-11-27 17:00:00","statut":"PREVUE","disponibilite":"EN_OPTION","optionJusqua":"2026-11-26 10:15:06"}
+POST /reservations/ee8a.../annuler (clic 'Libérer le créneau') -> 303 ; Location: /reservations/ee8a...
+GET apr�s redirection -> HTTP 200
+Réservation annulée : le créneau est de nouveau proposé aux autres groupes.
+État : Annulée
+--- BDD après ---
++----+------------+-------------------+---------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe        | statut  | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+-------------------+---------+---------------------+---------------------+---------+--------------+
+|  9 |         12 | Groupe E (annule) | ANNULEE | 2026-11-26 10:15:06 | 2026-11-26 10:00:06 | ee8a…   | ANNULEE      |
++----+------------+-------------------+---------+---------------------+---------------------+---------+--------------+
+{"id":12,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-27 16:00:00","fin":"2026-11-27 17:00:00","statut":"PREVUE","disponibilite":"LIBRE","optionJusqua":null}
+POST /reservations/ee8a.../annuler (2e fois) -> 409 ; <title>Annulation refusée · Les Archives Obscures ; Cette réservation est déjà annulée.
+
+=== Essai (d2) : annulation d'une réservation CONFIRMEE (réservation A, session 9) ===
+bouton : Annuler la réservation
+POST /reservations/a893.../annuler -> 303
+Réservation annulée : le créneau est de nouveau proposé aux autres groupes.
+État : Annulée
++----+------------+-------------------+---------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe        | statut  | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+-------------------+---------+---------------------+---------------------+---------+--------------+
+|  5 |          9 | Groupe A (valide) | ANNULEE | 2026-11-26 10:13:47 | 2026-11-26 09:58:47 | a893…   | ANNULEE      |
++----+------------+-------------------+---------+---------------------+---------------------+---------+--------------+
+
+=== Essai (f1) : deux confirmations simultanées, chevauchement forcé (session 13, 27/11 18 h 00) ===
+POST /sessions/13/reserver -> 303 ; Location: /reservations/d6c3…
+--- BDD avant ---
++----+------------+------------------------+------------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe             | statut     | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+------------------------+------------+---------------------+---------------------+---------+--------------+
+| 10 |         13 | Groupe F (concurrence) | EN_ATTENTE | 2026-11-26 10:15:44 | 2026-11-26 10:00:44 | d6c3…   | ACTIVE       |
++----+------------+------------------------+------------+---------------------+---------------------+---------+--------------+
+--- t0 10:00:44.859 : un client mysql externe verrouille la ligne 6 s (START TRANSACTION; SELECT ... FOR UPDATE; SLEEP(6); COMMIT) ---
+--- t0+3 s : attentes de verrou vues par MySQL (performance_schema.data_lock_waits) ---
++-------------------+
+| requetes_bloquees |
++-------------------+
+|                 1 |
++-------------------+
++------+------+--------------------------------------------------------------+------------------------------------------+
+| id   | s    | requete_en_attente                                           | fin                                      |
++------+------+--------------------------------------------------------------+------------------------------------------+
+|  808 |    3 | SELECT r.id_reservation, r.id_session, r.nom_groupe, r.conta | …<fin du jeton masquée>' FOR UPDATE |
++------+------+--------------------------------------------------------------+------------------------------------------+
+R1 port 8083 : POST /reservations/d6c3.../confirmer -> 303 en 5.123289 s
+R2 port 8084 : POST /reservations/d6c3.../confirmer -> 409 en 5.122101 s
+--- réponse R1 ---
+--- réponse R2 ---
+<title>Réservation déjà confirmée · Les Archives Obscures
+Réservation déjà confirmée · Les Archives Obscures
+Réservation confirmée : Le Cabinet des Ombres, le vendredi 27 novembre · 18 h 00. À bientôt !
+Réservation déjà confirmée
+Cette réservation est déjà confirmée.
+--- BDD après ---
++----+------------+------------------------+-----------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe             | statut    | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+------------------------+-----------+---------------------+---------------------+---------+--------------+
+| 10 |         13 | Groupe F (concurrence) | CONFIRMEE | 2026-11-26 10:15:44 | 2026-11-26 10:00:44 | d6c3…   | CONFIRMEE    |
++----+------------+------------------------+-----------+---------------------+---------------------+---------+--------------+
++---------------+
+| nb_confirmees |
++---------------+
+|             1 |
++---------------+
+
+=== Essai (f2) : deux confirmations simultanées, deux appareils (sessions PHP distinctes), chevauchement forcé (session 14, 27/11 20 h 00) ===
+POST /sessions/14/reserver -> 303 ; Location: /reservations/6414…
+cookies distincts : oui
+--- BDD avant ---
++----+------------+------------------------+------------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe             | statut     | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+------------------------+------------+---------------------+---------------------+---------+--------------+
+| 11 |         14 | Groupe G (concurrence) | EN_ATTENTE | 2026-11-26 10:16:12 | 2026-11-26 10:01:12 | 6414…   | ACTIVE       |
++----+------------+------------------------+------------+---------------------+---------------------+---------+--------------+
+--- t0 10:01:13 : client mysql externe : START TRANSACTION; SELECT ... FOR UPDATE; SLEEP(6); COMMIT ---
+--- t0+3 s : attentes de verrou InnoDB ---
++-------------------+
+| requetes_bloquees |
++-------------------+
+|                 3 |
++-------------------+
++-----------+----------+-------------------+----------------------+---------------+-------------+
+| demandeur | bloqueur | table_verrouillee | INDEX_NAME           | LOCK_MODE     | LOCK_STATUS |
++-----------+----------+-------------------+----------------------+---------------+-------------+
+|       860 |      859 | reservation       | uq_reservation_jeton | X,REC_NOT_GAP | WAITING     |
+|       861 |      859 | reservation       | uq_reservation_jeton | X,REC_NOT_GAP | WAITING     |
+|       861 |      860 | reservation       | uq_reservation_jeton | X,REC_NOT_GAP | WAITING     |
++-----------+----------+-------------------+----------------------+---------------+-------------+
++------+------+------------------------------------------+
+| id   | s    | fin_requete_en_attente                   |
++------+------+------------------------------------------+
+|  819 |    3 | …<fin du jeton masquée>' FOR UPDATE |
+|  820 |    3 | …<fin du jeton masquée>' FOR UPDATE |
++------+------+------------------------------------------+
+R1 port 8083 (appareil 1) : POST /reservations/6414.../confirmer -> 303 en 5.132966 s
+R2 port 8084 (appareil 2) : POST /reservations/6414.../confirmer -> 409 en 5.127421 s
+--- réponse R1 ---
+--- réponse R2 ---
+<title>Réservation déjà confirmée · Les Archives Obscures
+Réservation déjà confirmée · Les Archives Obscures
+Réservation déjà confirmée
+Cette réservation est déjà confirmée.
+--- BDD après ---
++----+------------+------------------------+-----------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe             | statut    | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+------------------------+-----------+---------------------+---------------------+---------+--------------+
+| 11 |         14 | Groupe G (concurrence) | CONFIRMEE | 2026-11-26 10:16:12 | 2026-11-26 10:01:12 | 6414…   | CONFIRMEE    |
++----+------------+------------------------+-----------+---------------------+---------------------+---------+--------------+
++---------------+
+| nb_confirmees |
++---------------+
+|             1 |
++---------------+
+
+=== Essai (f3) : deux confirmations API lancées en même temps, sans verrou externe (session 12, 27/11 16 h 00) ===
+POST /api/reservations (session 12) -> 201 ; jeton d998...
++----+------------+----------------------------+------------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe                 | statut     | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+----------------------------+------------+---------------------+---------------------+---------+--------------+
+|  9 |         12 | Groupe E (annule)          | ANNULEE    | 2026-11-26 10:15:06 | 2026-11-26 10:00:06 | ee8a…   | ANNULEE      |
+| 12 |         12 | Groupe H (concurrence API) | EN_ATTENTE | 2026-11-26 10:16:41 | 2026-11-26 10:01:41 | d998…   | ACTIVE       |
++----+------------+----------------------------+------------+---------------------+---------------------+---------+--------------+
+R1 8083 POST /api/reservations/d998.../confirmation -> 200 (debut 0.024827 s, total 0.025303 s)
+{"jeton":"d998…","sessionId":12,"salle":"Le Cabinet des Ombres","debut":"2026-11-27 16:00:00","nomGroupe":"Groupe H (concurrence API)","nbJoueurs":3,"statut":"CONFIRMEE","expiration":null}
+R2 8084 POST /api/reservations/d998.../confirmation -> 409 (debut 0.015499 s, total 0.016005 s)
+{"error":"RESERVATION_CONFLICT","message":"Cette réservation est déjà confirmée.","etat":"CONFIRMEE"}
++----+------------+----------------------------+-----------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe                 | statut    | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+----------------------------+-----------+---------------------+---------------------+---------+--------------+
+|  9 |         12 | Groupe E (annule)          | ANNULEE   | 2026-11-26 10:15:06 | 2026-11-26 10:00:06 | ee8a…   | ANNULEE      |
+| 12 |         12 | Groupe H (concurrence API) | CONFIRMEE | 2026-11-26 10:16:41 | 2026-11-26 10:01:41 | d998…   | CONFIRMEE    |
++----+------------+----------------------------+-----------+---------------------+---------------------+---------+--------------+
++---------------+
+| nb_confirmees |
++---------------+
+|             1 |
++---------------+
+
+driver=mysql ; serveur=8.4.13 ; FOUND_ROWS non activé (DatabaseFactory ne le passe pas)
+changeStatusIf(6 (B, EN_ATTENTE expirée), EN_ATTENTE -> CONFIRMEE, actif à 10:03:23) = false ; statut avant EN_ATTENTE, après EN_ATTENTE
+changeStatusIf(11 (G, déjà CONFIRMEE), EN_ATTENTE -> CONFIRMEE, actif à 10:03:23) = false ; statut avant CONFIRMEE, après CONFIRMEE
+changeStatusIf(8 (D, EN_ATTENTE active), EN_ATTENTE -> CONFIRMEE, actif à 10:03:23) = true ; statut avant EN_ATTENTE, après CONFIRMEE
+changeStatusIf(8 (D) 2e fois, EN_ATTENTE -> CONFIRMEE, actif à 10:03:23) = false ; statut avant CONFIRMEE, après CONFIRMEE
+ROLLBACK ; statut de 8 après rollback : EN_ATTENTE
+
+=== Contrôle global final (10:03:34) ===
++----+------------+----------------------------+------------+---------------------+---------------------+---------+-------------------+
+| id | id_session | nom_groupe                 | statut     | expires_at          | created_at          | jeton   | etat_calcule      |
++----+------------+----------------------------+------------+---------------------+---------------------+---------+-------------------+
+|  5 |          9 | Groupe A (valide)          | ANNULEE    | 2026-11-26 10:13:47 | 2026-11-26 09:58:47 | a893…   | ANNULEE           |
+|  6 |         10 | Groupe B (expiree)         | EN_ATTENTE | 2026-11-26 09:58:16 | 2026-11-26 09:43:16 | eee9…   | EXPIREE (calcule) |
+|  7 |         11 | Groupe C (expiree)         | EN_ATTENTE | 2026-11-26 09:58:35 | 2026-11-26 09:43:35 | 567e…   | EXPIREE (calcule) |
+|  8 |         11 | Groupe D (autre groupe)    | EN_ATTENTE | 2026-11-26 10:14:55 | 2026-11-26 09:59:55 | 9151…   | ACTIVE            |
+|  9 |         12 | Groupe E (annule)          | ANNULEE    | 2026-11-26 10:15:06 | 2026-11-26 10:00:06 | ee8a…   | ANNULEE           |
+| 10 |         13 | Groupe F (concurrence)     | CONFIRMEE  | 2026-11-26 10:15:44 | 2026-11-26 10:00:44 | d6c3…   | CONFIRMEE         |
+| 11 |         14 | Groupe G (concurrence)     | CONFIRMEE  | 2026-11-26 10:16:12 | 2026-11-26 10:01:12 | 6414…   | CONFIRMEE         |
+| 12 |         12 | Groupe H (concurrence API) | CONFIRMEE  | 2026-11-26 10:16:41 | 2026-11-26 10:01:41 | d998…   | CONFIRMEE         |
++----+------------+----------------------------+------------+---------------------+---------------------+---------+-------------------+
+sessions avec plus d'une réservation bloquante (CONFIRMEE ou EN_ATTENTE non expirée) :
+(aucune ligne = aucun doublon)
++------------+--------+
+| id_session | statut |
++------------+--------+
+|          9 | PREVUE |
+|         10 | PREVUE |
+|         11 | PREVUE |
+|         12 | PREVUE |
+|         13 | PREVUE |
+|         14 | PREVUE |
++------------+--------+
+
+=== Journal général MySQL (general_log activé le temps des essais ; horodatage du journal en UTC = Paris - 1 h) ===
+--- (a) confirmation réussie : transaction complète ---
+2026-11-26T08:58:48.555722Z	  751 Query	START TRANSACTION
+2026-11-26T08:58:48.556323Z	  751 Query	SELECT r.id_reservation, r.id_session, r.nom_groupe, r.contact, r.nb_joueurs, r.statut,
+                    r.date_creation, r.date_expiration, r.jeton, r.code_suivi,
+                    s.id_salle, s.date_debut, s.date_fin, s.statut AS statut_session, sa.nom AS salle
+               FROM reservation r
+               JOIN session s ON s.id_session = r.id_session
+               JOIN salle sa ON sa.id_salle = s.id_salle WHERE r.jeton = '<jeton>' FOR UPDATE
+2026-11-26T08:58:48.557451Z	  751 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+                    sa.nom AS salle, sa.capacite_min, sa.capacite_max,
+                    (SELECT COUNT(*) FROM reservation r
+                      WHERE r.id_session = s.id_session AND r.statut = 'CONFIRMEE') AS nb_confirmees,
+                    (SELECT MAX(r.date_expiration) FROM reservation r
+                      WHERE r.id_session = s.id_session AND r.statut = 'EN_ATTENTE') AS option_expire_le
+               FROM session s
+               JOIN salle sa ON sa.id_salle = s.id_salle
+              WHERE s.id_session = '9' FOR UPDATE
+2026-11-26T08:58:48.558484Z	  751 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+                    sa.nom AS salle, sa.capacite_min, sa.capacite_max,
+                    (SELECT COUNT(*) FROM reservation r
+                      WHERE r.id_session = s.id_session AND r.statut = 'CONFIRMEE') AS nb_confirmees,
+                    (SELECT MAX(r.date_expiration) FROM reservation r
+                      WHERE r.id_session = s.id_session AND r.statut = 'EN_ATTENTE') AS option_expire_le
+               FROM session s
+               JOIN salle sa ON sa.id_salle = s.id_salle
+              WHERE s.id_session = '9' FOR UPDATE
+2026-11-26T08:58:48.559209Z	  751 Query	UPDATE reservation SET statut = 'CONFIRMEE' WHERE id_reservation = '5' AND statut = 'EN_ATTENTE' AND date_expiration > '2026-11-26 09:58:48'
+2026-11-26T08:58:48.559948Z	  751 Query	COMMIT
+--- (b) confirmation d'une option expirée : verrous, aucun UPDATE, ROLLBACK ---
+2026-11-26T08:59:17.331499Z	  764 Query	START TRANSACTION
+2026-11-26T08:59:17.331843Z	  764 Query	SELECT r.id_reservation, r.id_session, r.nom_groupe, r.contact, r.nb_joueurs, r.statut,
+                    r.date_creation, r.date_expiration, r.jeton, r.code_suivi,
+                    s.id_salle, s.date_debut, s.date_fin, s.statut AS statut_session, sa.nom AS salle
+               FROM reservation r
+               JOIN session s ON s.id_session = r.id_session
+               JOIN salle sa ON sa.id_salle = s.id_salle WHERE r.jeton = '<jeton>' FOR UPDATE
+2026-11-26T08:59:17.332370Z	  764 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+                    sa.nom AS salle, sa.capacite_min, sa.capacite_max,
+                    (SELECT COUNT(*) FROM reservation r
+                      WHERE r.id_session = s.id_session AND r.statut = 'CONFIRMEE') AS nb_confirmees,
+                    (SELECT MAX(r.date_expiration) FROM reservation r
+                      WHERE r.id_session = s.id_session AND r.statut = 'EN_ATTENTE') AS option_expire_le
+               FROM session s
+               JOIN salle sa ON sa.id_salle = s.id_salle
+              WHERE s.id_session = '10' FOR UPDATE
+2026-11-26T08:59:17.333301Z	  764 Query	ROLLBACK
+--- (c) annulation forgée d'une option expirée : aucun UPDATE, ROLLBACK ---
+2026-11-26T08:59:56.628366Z	  783 Query	START TRANSACTION
+2026-11-26T08:59:56.629058Z	  783 Query	SELECT r.id_reservation, r.id_session, r.nom_groupe, r.contact, r.nb_joueurs, r.statut,
+                    r.date_creation, r.date_expiration, r.jeton, r.code_suivi,
+                    s.id_salle, s.date_debut, s.date_fin, s.statut AS statut_session, sa.nom AS salle
+               FROM reservation r
+               JOIN session s ON s.id_session = r.id_session
+               JOIN salle sa ON sa.id_salle = s.id_salle WHERE r.jeton = '<jeton>' FOR UPDATE
+2026-11-26T08:59:56.629826Z	  783 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+                    sa.nom AS salle, sa.capacite_min, sa.capacite_max,
+                    (SELECT COUNT(*) FROM reservation r
+                      WHERE r.id_session = s.id_session AND r.statut = 'CONFIRMEE') AS nb_confirmees,
+                    (SELECT MAX(r.date_expiration) FROM reservation r
+                      WHERE r.id_session = s.id_session AND r.statut = 'EN_ATTENTE') AS option_expire_le
+               FROM session s
+               JOIN salle sa ON sa.id_salle = s.id_salle
+              WHERE s.id_session = '11' FOR UPDATE
+2026-11-26T08:59:56.630727Z	  783 Query	ROLLBACK
+--- (d) annulation d'une option valide ---
+2026-11-26T09:00:07.437878Z	  793 Query	START TRANSACTION
+2026-11-26T09:00:07.438467Z	  793 Query	SELECT r.id_reservation, r.id_session, r.nom_groupe, r.contact, r.nb_joueurs, r.statut,
+                    r.date_creation, r.date_expiration, r.jeton, r.code_suivi,
+                    s.id_salle, s.date_debut, s.date_fin, s.statut AS statut_session, sa.nom AS salle
+               FROM reservation r
+               JOIN session s ON s.id_session = r.id_session
+               JOIN salle sa ON sa.id_salle = s.id_salle WHERE r.jeton = '<jeton>' FOR UPDATE
+2026-11-26T09:00:07.439286Z	  793 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+                    sa.nom AS salle, sa.capacite_min, sa.capacite_max,
+                    (SELECT COUNT(*) FROM reservation r
+                      WHERE r.id_session = s.id_session AND r.statut = 'CONFIRMEE') AS nb_confirmees,
+                    (SELECT MAX(r.date_expiration) FROM reservation r
+                      WHERE r.id_session = s.id_session AND r.statut = 'EN_ATTENTE') AS option_expire_le
+               FROM session s
+               JOIN salle sa ON sa.id_salle = s.id_salle
+              WHERE s.id_session = '12' FOR UPDATE
+2026-11-26T09:00:07.440298Z	  793 Query	UPDATE reservation SET statut = 'ANNULEE' WHERE id_reservation = '9' AND statut = 'EN_ATTENTE' AND date_expiration > '2026-11-26 10:00:07'
+2026-11-26T09:00:07.440930Z	  793 Query	COMMIT
+--- (d2) annulation d'une réservation confirmée (UPDATE sans condition de date) ---
+2026-11-26T09:00:23.595595Z	  799 Query	START TRANSACTION
+2026-11-26T09:00:23.596081Z	  799 Query	SELECT r.id_reservation, r.id_session, r.nom_groupe, r.contact, r.nb_joueurs, r.statut,
+               JOIN salle sa ON sa.id_salle = s.id_salle WHERE r.jeton = '<jeton>' FOR UPDATE
+2026-11-26T09:00:23.596673Z	  799 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+              WHERE s.id_session = '9' FOR UPDATE
+2026-11-26T09:00:23.597398Z	  799 Query	UPDATE reservation SET statut = 'ANNULEE' WHERE id_reservation = '5' AND statut = 'CONFIRMEE'
+2026-11-26T09:00:23.597983Z	  799 Query	COMMIT
+--- (f2) deux confirmations concurrentes (threads 819 = 8083 et 820 = 8084) bloquées par le client externe 818 ---
+2026-11-26T09:01:13.932839Z	  818 Query	START TRANSACTION
+2026-11-26T09:01:13.932961Z	  818 Query	SELECT id_reservation FROM reservation WHERE jeton='<jeton>' FOR UPDATE
+2026-11-26T09:01:14.829719Z	  819 Query	START TRANSACTION
+2026-11-26T09:01:14.830150Z	  819 Query	SELECT r.id_reservation, r.id_session, r.nom_groupe, r.contact, r.nb_joueurs, r.statut,
+               JOIN salle sa ON sa.id_salle = s.id_salle WHERE r.jeton = '<jeton>' FOR UPDATE
+2026-11-26T09:01:14.846497Z	  820 Query	START TRANSACTION
+2026-11-26T09:01:14.846931Z	  820 Query	SELECT r.id_reservation, r.id_session, r.nom_groupe, r.contact, r.nb_joueurs, r.statut,
+               JOIN salle sa ON sa.id_salle = s.id_salle WHERE r.jeton = '<jeton>' FOR UPDATE
+2026-11-26T09:01:19.933648Z	  818 Query	COMMIT
+2026-11-26T09:01:19.935359Z	  819 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+              WHERE s.id_session = '14' FOR UPDATE
+2026-11-26T09:01:19.936865Z	  819 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+              WHERE s.id_session = '14' FOR UPDATE
+2026-11-26T09:01:19.938000Z	  819 Query	UPDATE reservation SET statut = 'CONFIRMEE' WHERE id_reservation = '11' AND statut = 'EN_ATTENTE' AND date_expiration > '2026-11-26 10:01:19'
+2026-11-26T09:01:19.938845Z	  819 Query	COMMIT
+2026-11-26T09:01:19.943525Z	  820 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+              WHERE s.id_session = '14' FOR UPDATE
+2026-11-26T09:01:19.945399Z	  820 Query	ROLLBACK
+--- (f3) deux confirmations API sans verrou externe (threads 826 et 827) ---
+2026-11-26T09:01:41.870962Z	  826 Query	START TRANSACTION
+2026-11-26T09:01:41.871466Z	  826 Query	SELECT r.id_reservation, r.id_session, r.nom_groupe, r.contact, r.nb_joueurs, r.statut,
+               JOIN salle sa ON sa.id_salle = s.id_salle WHERE r.jeton = '<jeton>' FOR UPDATE
+2026-11-26T09:01:41.872123Z	  826 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+              WHERE s.id_session = '12' FOR UPDATE
+2026-11-26T09:01:41.873114Z	  826 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+              WHERE s.id_session = '12' FOR UPDATE
+2026-11-26T09:01:41.873771Z	  826 Query	UPDATE reservation SET statut = 'CONFIRMEE' WHERE id_reservation = '12' AND statut = 'EN_ATTENTE' AND date_expiration > '2026-11-26 10:01:41'
+2026-11-26T09:01:41.874284Z	  826 Query	COMMIT
+2026-11-26T09:01:41.878990Z	  827 Query	START TRANSACTION
+2026-11-26T09:01:41.879448Z	  827 Query	SELECT r.id_reservation, r.id_session, r.nom_groupe, r.contact, r.nb_joueurs, r.statut,
+               JOIN salle sa ON sa.id_salle = s.id_salle WHERE r.jeton = '<jeton>' FOR UPDATE
+2026-11-26T09:01:41.879462Z	  826 Query	SELECT r.id_reservation, r.id_session, r.nom_groupe, r.contact, r.nb_joueurs, r.statut,
+2026-11-26T09:01:41.880040Z	  827 Query	SELECT s.id_session, s.id_salle, s.date_debut, s.date_fin, s.statut,
+              WHERE s.id_session = '12' FOR UPDATE
+2026-11-26T09:01:41.880843Z	  827 Query	ROLLBACK
+
+=== Logs des serveurs PHP intégrés ===
+8083 : 133 lignes, 8084 : 13 lignes ; occurrences de fatal|warning|error|exception|[500] : server8083.log:0 server8084.log:0 
+(Le serveur n'écrit ici que Accepted / Closing par connexion : aucun message d'erreur PHP.)
+Journal général MySQL complet : 0 occurrence de error|exception|SQLSTATE|deadlock.

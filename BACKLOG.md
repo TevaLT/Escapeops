@@ -25,7 +25,7 @@
 | ID | Priorité | Ticket | Critères d'acceptation |
 |---|---|---|---|
 | ✅ US-01 | M | Installer le starter Slim + Medoo et le lancer en local | Page d'accueil affichée, `.env` configuré, procédure dans le README |
-| ✅ US-02 | M | Modéliser la BDD (MCD/MLD) | Tables : `user`, `room`, `session`, `reservation`, `game_master` (ou rôle), `equipment`, `room_equipment` (N–N), `incident`, `session_history`, `checklist`, `room_control`. Statuts prévus : réservation `EN_ATTENTE` / `CONFIRMEE` / `ANNULEE` (+ `expires_at`), session `PREVUE` / `PRETE` / `EN_COURS` / `INTERROMPUE` / `TERMINEE` / `ANNULEE` |
+| ✅ US-02 | M | Modéliser la BDD (MCD/MLD) | Tables : `user`, `room`, `session`, `reservation`, `game_master` (ou rôle), `equipment`, `room_equipment` (N–N), `incident`, `session_history`, `checklist`, `room_control`. Statuts prévus : réservation `EN_ATTENTE` / `CONFIRMEE` / `ANNULEE` (+ `expires_at`), session `PREVUE` / `PRETE` / `EN_COURS` / `INTERROMPUE` / `TERMINEE` / `ANNULEE` · MCD : `MCD_EscapeOps.png` · MLD (jeudi 26) : `docs/MLD.md`, 10 tables en notation textuelle et en `erDiagram` |
 | ✅ US-03 | M | Écrire `001_schema.sql` | Contraintes : FK, `CHECK (end_at > start_at)`, index sur `room_id` + `start_at` |
 | ✅ US-04 | M | Écrire `seed.sql` | 3 salles, 2 GM, 1 responsable, 1 admin, 8 sessions (dont 2 dans la même salle **et 2 qui se chevauchent dans des salles différentes** pour E5), 4 réservations, 5 équipements (dont 1 critique), 2 incidents, 1 option `EN_ATTENTE` |
 | ✅ US-05 | M | Premier parcours vertical : liste des salles issue de la BDD | Route → contrôleur → service → repository → vue |
@@ -136,7 +136,9 @@
 |---|---|---|---|
 | ✅ US-70 | M | Analyser l'impact du ticket d'évolution client | Fiche d'analyse rédigée **avant** de toucher au code · fait : ticket EV-TEV-01 (issue #8), `starter-kit/docs/evolutions/EV-TEV-01.md` |
 | ✅ US-71 | M | Implémenter l'évolution | Tests de non-régression sur E1, E5 et E10 toujours verts · fait : 299 vérifications vertes |
-| US-72 | M | Incident : reproduire, diagnostiquer, corriger | Utiliser `templates/RAPPORT_INCIDENT.md`, avec un test qui prouve la correction |
+| ✅ US-72 | M | Incident : reproduire, diagnostiquer, corriger | Utiliser `templates/RAPPORT_INCIDENT.md`, avec un test qui prouve la correction · fait : incident INC-TEV-01 (issue #13 de l'enseignant), rapport `docs/incidents/INC-TEV-01.md`, preuves `docs/preuves/inc-tev-01/`, `tests/incident-inc-tev-01.php` (33 échecs avant, 92 vertes après) |
+
+**Jeudi 26 matin :** incident INC-TEV-01 « option peut-être confirmée après 15 min » (E1). Défaut E1 **non reproduit** en 16 essais sur MySQL, dont un onglet resté ouvert 15 min 20 s sans aucun SQL (409, base inchangée, créneau libéré). Cause probable du signalement : une page de refus qui ressemblait à une confirmation, et un bouton « Libérer le créneau » encore affiché sur une option expirée. Corrigé : titre « Réservation non enregistrée : option expirée » avec la disponibilité réelle du créneau, annulation d'une option expirée refusée en 409, écriture conditionnelle (`changeStatusIf`) et relecture en `FOR UPDATE`. `composer test` : 15 suites vertes. Vérification MySQL après correction : voir `docs/preuves/inc-tev-01/apres-correction.md`. 🟡 Commit, PR `fix/inc-tev-01` et issue de suivi à faire.
 
 ---
 
@@ -147,7 +149,7 @@
 | US-80 | M | Gel du périmètre et recette complète | `templates/RECETTE.md` rempli |
 | US-81 | M | Vérification sécurité | Requêtes préparées, échappement à l'affichage (XSS), CSRF, droits, pas de secret dans Git |
 | US-82 | M | Sauvegarde et restauration de la BDD | `mysqldump` puis restauration testée |
-| US-83 | M | README final | Installation, comptes de test, ordre des migrations |
+| 🟡 US-83 | M | README final | Installation, comptes de test, ordre des migrations · jeudi 26 : sections « Déploiement » et « Limites connues » de `starter-kit/README.md` rédigées |
 | US-84 | M | Release Git (tag `v1.0`) | |
 | US-85 | M | Démonstration de 5 à 7 minutes | Scénario : option E1 qui bloque le groupe B → GM affecté et conflit E5 → checklist 2/3 puis 3/3 (E10) → démarrage |
 

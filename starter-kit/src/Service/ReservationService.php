@@ -113,7 +113,32 @@ final class ReservationService
         return $reservation + [
             'etat' => $state,
             'peut_confirmer' => $state === ReservationOption::EN_ATTENTE,
-            'peut_annuler' => $state !== ReservationOption::ANNULEE && !$started,
+            // Une option expirée ne garde plus rien : il n'y a rien à libérer (INC-TEV-01).
+            'peut_annuler' => !in_array($state, [ReservationOption::ANNULEE, ReservationOption::EXPIREE], true) && !$started,
+            'creneau' => $state === ReservationOption::EXPIREE ? $this->slotAfterExpiry((int) $reservation['id_session'], $now) : null,
+        ];
+    }
+
+    /**
+     * Option expirée : ce qu'est devenu le créneau à cet instant (même calcul E1 que pour poser une option ;
+     * l'option expirée du groupe ne compte plus). La page dit donc si le créneau est vraiment libre.
+     *
+     * @return array{disponibilite: string, message: string}
+     */
+    private function slotAfterExpiry(int $sessionId, DateTimeImmutable $now): array
+    {
+        $info = $this->sessions->bookingInfo($sessionId);
+        $availability = SlotAvailability::of($info, $now);
+
+        return [
+            'disponibilite' => $availability,
+            'message' => match ($availability) {
+                SlotAvailability::LIBRE => 'Le créneau est encore libre : vous pouvez poser une nouvelle option.',
+                SlotAvailability::EN_OPTION => 'Le créneau a été repris par un autre groupe, qui le garde en option jusqu\'à '
+                    . heure_fr((string) $info['option_expire_le']) . ' : il sera de nouveau proposé si cette option n\'est pas confirmée.',
+                SlotAvailability::COMPLET => 'Le créneau a été réservé par un autre groupe : il n\'est plus disponible.',
+                default => 'Le créneau n\'est plus réservable : la partie a commencé ou la session a été annulée.',
+            },
         ];
     }
 
@@ -131,9 +156,9 @@ final class ReservationService
 
             $state = ReservationOption::state($reservation, $now);
             if ($state === ReservationOption::EXPIREE) {
+                // Un seul message : la disponibilité réelle du créneau est donnée à part par byToken().
                 throw new ReservationStateException($state, sprintf(
-                    'Votre option a expiré à %s : la réservation n\'est pas confirmée. '
-                    . 'Si le créneau est encore libre, vous pouvez poser une nouvelle option.',
+                    'Votre option a expiré à %s : la réservation n\'a pas été enregistrée.',
                     heure_fr((string) $reservation['date_expiration'])
                 ));
             }
@@ -145,21 +170,31 @@ final class ReservationService
             }
 
             // L'option court encore, mais la session a pu être annulée (ou commencer) entre-temps.
-            $info = $this->sessions->bookingInfo((int) $reservation['id_session']);
+            $info = $this->sessions->bookingInfo((int) $reservation['id_session'], lock: true);
             $availability = SlotAvailability::of(['option_expire_le' => null] + $info, $now);
             if ($availability !== SlotAvailability::LIBRE) {
                 throw new ReservationStateException($availability, self::reason($availability, $info));
             }
 
-            $this->reservations->updateStatus((int) $reservation['id_reservation'], ReservationOption::CONFIRMEE);
+            // Écriture conditionnelle : la ligne doit être encore EN_ATTENTE et l'option encore active.
+            $confirmed = $this->reservations->changeStatusIf(
+                (int) $reservation['id_reservation'],
+                ReservationOption::EN_ATTENTE,
+                ReservationOption::CONFIRMEE,
+                $now
+            );
+            if (!$confirmed) {
+                throw self::concurrentChange();
+            }
 
             return ['statut' => ReservationOption::CONFIRMEE] + $reservation;
         });
     }
 
     /**
-     * Le groupe annule son option (le créneau est libéré tout de suite) ou sa réservation confirmée,
-     * tant que la partie n'a pas commencé.
+     * Le groupe annule son option encore valide (le créneau est libéré tout de suite) ou sa réservation
+     * confirmée, tant que la partie n'a pas commencé. Une option expirée est refusée (409) : elle ne garde
+     * déjà plus le créneau, et la passer à ANNULEE effacerait de l'historique qu'elle a expiré.
      *
      * @throws NotFoundException|ReservationStateException
      */
@@ -167,36 +202,64 @@ final class ReservationService
     {
         return $this->reservations->transaction(function () use ($token): array {
             $reservation = $this->lockedReservation($token);
+            $now = $this->clock->now();
 
-            if ($reservation['statut'] === ReservationOption::ANNULEE) {
-                throw new ReservationStateException(ReservationOption::ANNULEE, 'Cette réservation est déjà annulée.');
+            $state = ReservationOption::state($reservation, $now);
+            if ($state === ReservationOption::ANNULEE) {
+                throw new ReservationStateException($state, 'Cette réservation est déjà annulée.');
             }
-            if (new DateTimeImmutable((string) $reservation['date_debut']) <= $this->clock->now()) {
+            if ($state === ReservationOption::EXPIREE) {
+                throw new ReservationStateException($state, sprintf(
+                    'Votre option a expiré à %s : elle ne vous gardait déjà plus le créneau, il n\'y avait rien à libérer.',
+                    heure_fr((string) $reservation['date_expiration'])
+                ));
+            }
+            if (new DateTimeImmutable((string) $reservation['date_debut']) <= $now) {
                 throw new ReservationStateException('COMMENCEE', 'La partie a déjà commencé : la réservation ne peut plus être annulée en ligne.');
             }
 
-            $this->reservations->updateStatus((int) $reservation['id_reservation'], ReservationOption::ANNULEE);
+            // Écriture conditionnelle : le statut doit être celui qui vient d'être lu (et l'option encore active).
+            $cancelled = $this->reservations->changeStatusIf(
+                (int) $reservation['id_reservation'],
+                $state,
+                ReservationOption::ANNULEE,
+                $state === ReservationOption::EN_ATTENTE ? $now : null
+            );
+            if (!$cancelled) {
+                throw self::concurrentChange();
+            }
 
             return ['statut' => ReservationOption::ANNULEE] + $reservation;
         });
     }
 
     /**
-     * Verrouille la session de la réservation, puis relit la réservation : deux clics simultanés
-     * (ou une confirmation pendant qu'un autre groupe tente sa chance) passent l'un après l'autre.
+     * Lit la réservation en la verrouillant (SELECT ... FOR UPDATE, qui verrouille aussi sa session par la
+     * jointure), puis verrouille la session comme placeOption : deux clics simultanés, ou une confirmation
+     * pendant qu'un autre groupe tente sa chance, passent l'un après l'autre.
+     *
+     * La toute première lecture est verrouillante : sous MySQL (REPEATABLE READ), une lecture simple figerait
+     * un instantané antérieur au verrou, et l'on relirait un statut périmé (INC-TEV-01).
      *
      * @throws NotFoundException
      */
     private function lockedReservation(string $token): array
     {
-        $reservation = $this->reservations->findByToken($token);
-        if ($reservation === null) {
-            throw new NotFoundException('Réservation introuvable.');
-        }
+        $reservation = $this->reservations->findByToken($token, lock: true)
+            ?? throw new NotFoundException('Réservation introuvable.');
 
         $this->sessions->bookingInfo((int) $reservation['id_session'], lock: true);
 
-        return $this->reservations->findByToken($token) ?? throw new NotFoundException('Réservation introuvable.');
+        return $reservation;
+    }
+
+    /** 0 ligne modifiée par l'écriture conditionnelle : une autre requête est passée entre-temps. */
+    private static function concurrentChange(): ReservationStateException
+    {
+        return new ReservationStateException(
+            ReservationStateException::CONFLIT,
+            'Cette réservation vient d\'être modifiée par une autre demande : rien n\'a été enregistré. Rechargez la page pour voir son état.'
+        );
     }
 
     /**

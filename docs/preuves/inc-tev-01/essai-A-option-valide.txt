@@ -1,0 +1,119 @@
+=== Essai A : option valide, confirmée par l'interface (session 9) ===
+--- BDD avant ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:23:11 | 2026-11-26 08:23:11 |
++---------------------+---------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          9 | 2026-11-27 10:00:00 | 2026-11-27 11:00:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+POST /sessions/9/reserver -> HTTP/1.1 303 See Other ; Location: /reservations/9955…
+--- GET /reservations/9955… (onglet) 09:23:12 ---
+HTTP 200
+Option posée pour « Groupe A (valide) » jusqu'à 09 h 38. Confirmez-la avant cette heure, sinon le créneau sera libéré. Votre code de suivi : 2R..-.....
+← Le Cabinet des Ombres
+Ma réservation
+Le Cabinet des Ombres
+vendredi 27 novembre · 10 h 00 → 11 h 00
+Groupe : Groupe A (valide) (4 joueurs)
+État : Option en cours
+Code de suivi : 2R..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+Le créneau vous est gardé jusqu'à 09 h 38. Passé cette heure, l'option expire et le créneau est rendu aux autres groupes.
+[]                []Confirmer la réservation
+[]                []Libérer le créneau
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.
+--- BDD après pose ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:23:13 | 2026-11-26 08:23:13 |
++---------------------+---------------------+
++----+------------+-------------------+------------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe        | statut     | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+-------------------+------------+---------------------+---------------------+---------+--------------+
+|  6 |          9 | Groupe A (valide) | EN_ATTENTE | 2026-11-26 09:38:12 | 2026-11-26 09:23:12 | 9955…   | ACTIVE       |
++----+------------+-------------------+------------+---------------------+---------------------+---------+--------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          9 | 2026-11-27 10:00:00 | 2026-11-27 11:00:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+
+--- (a) POST /reservations/9955…/confirmer (formulaire de l'onglet) 09:23:13 ---
+HTTP/1.1 303 See Other
+Location: /reservations/9955…
+--- page affichée après redirection (GET) ---
+HTTP 200
+Réservation confirmée : Le Cabinet des Ombres, le vendredi 27 novembre · 10 h 00. À bientôt !
+← Le Cabinet des Ombres
+Ma réservation
+Le Cabinet des Ombres
+vendredi 27 novembre · 10 h 00 → 11 h 00
+Groupe : Groupe A (valide) (4 joueurs)
+État : Confirmée
+Code de suivi : 2R..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+[]                []Annuler la réservation
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.
+--- BDD après confirmation ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:23:13 | 2026-11-26 08:23:13 |
++---------------------+---------------------+
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe        | statut    | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
+|  6 |          9 | Groupe A (valide) | CONFIRMEE | 2026-11-26 09:38:12 | 2026-11-26 09:23:12 | 9955…   | CONFIRMEE    |
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          9 | 2026-11-27 10:00:00 | 2026-11-27 11:00:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+
+--- (b) POST /api/reservations/9955…/confirmation (2e confirmation, HTTP direct) ---
+HTTP/1.1 409 Conflict
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-store
+
+{"error":"RESERVATION_CONFLICT","message":"Cette réservation est déjà confirmée.","etat":"CONFIRMEE"}
+
+--- BDD après ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:23:14 | 2026-11-26 08:23:14 |
++---------------------+---------------------+
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe        | statut    | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
+|  6 |          9 | Groupe A (valide) | CONFIRMEE | 2026-11-26 09:38:12 | 2026-11-26 09:23:12 | 9955…   | CONFIRMEE    |
++----+------------+-------------------+-----------+---------------------+---------------------+---------+--------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          9 | 2026-11-27 10:00:00 | 2026-11-27 11:00:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+

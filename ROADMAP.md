@@ -1,6 +1,6 @@
 # Roadmap — EscapeOps
 
-**Semaine :** du lundi 23 au vendredi 27 novembre 2026 · **Mise à jour :** mercredi 25/11, soir
+**Semaine :** du lundi 23 au vendredi 27 novembre 2026 · **Mise à jour :** jeudi 26/11, midi
 **Détail des tickets :** [BACKLOG.md](BACKLOG.md) · **Suivi au jour le jour :** [docs/journal.md](docs/journal.md)
 
 > Principe : un produit **testable et poussé chaque soir**. On ne commence pas une étape tant que la précédente n'est pas verte.
@@ -19,14 +19,18 @@
 | Hors backlog | Création de comptes GM par le responsable · « Mes réservations » (code de suivi + historique) | ✅ (PR #1, fusionnée) |
 | Mercredi après-midi | Épic 4 — API JSON (US-51 à US-55) | ✅ |
 | Mercredi soir | Épic 5 — SQL avancé (US-60 à US-65) | ✅ preuves dans `docs/preuves/US-65.md` |
-| | `composer test` | 14 suites, 431 vérifications vertes |
+| Jeudi matin | PR #5 fusionnée, issue #8 (EV-TEV-01) fermée | ✅ |
+| Jeudi matin | Livrables : `docs/MLD.md`, `docs/cas-utilisation.md`, sections « Déploiement » et « Limites connues » du README | ✅ 🟡 non commités |
+| Jeudi matin | Incident imposé INC-TEV-01 (US-72, issue #13) : défaut E1 non reproduit, affichage corrigé, écriture durcie | ✅ 🟡 non commité · rapport `docs/incidents/INC-TEV-01.md` |
+| | `composer test` | 15 suites vertes (dont `incident-inc-tev-01.php`, 92 vérifications) |
 
-🌙 **Fin de mercredi 25/11 :** tout est commité et poussé (PR #1, #2 et #3 fusionnées, branche `docs/preuves-ev-tev-01` poussée). Notion est à jour (68 tickets : 52 faits, 16 à faire).
+☀️ **Jeudi 26/11, midi :** incident traité sur la branche `fix/inc-tev-01`, rien n'est encore commité ni poussé. Vérification sur MySQL 8.4 après correction : conforme (`docs/preuves/inc-tev-01/apres-correction.md`).
 
-⚠️ **À faire en premier jeudi matin :**
-1. Fusionner la PR `docs/preuves-ev-tev-01` (preuves des échanges avec la cliente, épic 9)
-2. Issue #8 : cocher les critères d'acceptation et les livrables, puis fermer le ticket
-3. Incident imposé (US-72) dès qu'il arrive ; en attendant, livrables manquants : cas d'utilisation, MLD, sections « Déploiement » et « Limites connues » du README
+⚠️ **Prochaines étapes :**
+1. Commit sur `fix/inc-tev-01` (correctif, tests, rapport, preuves, MLD, cas d'utilisation, README), puis PR vers `main`
+2. Créer l'issue de suivi dans `TevaLT/Escapeops` (texte : `docs/incidents/INC-TEV-01-issue-suivi.md`) et reporter son numéro et le hash du commit dans le rapport
+3. Répondre sur #13 (texte : `docs/incidents/INC-TEV-01-reponse-testeur.md`, avec la version corrigée)
+4. Cet après-midi : extension **E2** (équipement critique HS, US-90 à 92)
 
 ---
 
@@ -63,7 +67,7 @@
 
 | # | Tâche | Ticket |
 |---|---|---|
-| 1 | Incident imposé : reproduire → diagnostiquer → corriger → test qui prouve le correctif → `templates/RAPPORT_INCIDENT.md` | US-72 |
+| 1 | ✅ Incident imposé : reproduire → diagnostiquer → corriger → test qui prouve le correctif → `templates/RAPPORT_INCIDENT.md` · fait jeudi matin : INC-TEV-01, `docs/incidents/INC-TEV-01.md`, `tests/incident-inc-tev-01.php` · 🟡 commit et PR à faire | US-72 |
 | 2 | Non-régression : `composer test` vert, E1/E5/E10 rejoués à la main | — |
 | 3 | **Si tout est vert :** extension n°1 **E2** (équipement critique HS) | US-90 à 92 |
 | 4 | Sinon, ou en plus : **E9**, peu coûteuse une fois `sp_bilan_salle` en place | US-96 à 98 |

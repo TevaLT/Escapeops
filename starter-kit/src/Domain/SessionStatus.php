@@ -10,7 +10,8 @@ namespace App\Domain;
  *   PREVUE → PRETE → EN_COURS → TERMINEE
  *      └───────┴──→ ANNULEE
  *
- * Demain : PRETE exigera la checklist 3/3 (E10) et EN_COURS un game master affecté (E5).
+ * Ces transitions sont la forme du cycle ; les conditions métier sont vérifiées par SessionService :
+ * PRETE exige la checklist d'ouverture 3/3 (E10) et EN_COURS un game master affecté (E5).
  * INTERROMPUE est réservé à l'extension E6.
  */
 final class SessionStatus

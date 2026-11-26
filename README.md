@@ -47,13 +47,16 @@ Les fois suivantes, le conteneur existe déjà : `docker start escapeops-db` suf
 | [CAHIER_DES_CHARGES.md](CAHIER_DES_CHARGES.md) | Besoin du client, acteurs, périmètre, règles, données, critères d'acceptation, risques |
 | [CHOIX_REGLES.md](CHOIX_REGLES.md) | Les 3 règles contractuelles et les 3 extensions |
 | [MCD_EscapeOps.png](MCD_EscapeOps.png) · [.svg](MCD_EscapeOps.svg) | Modèle conceptuel de données (Merise) · source Looping : `Modele_de_BDD.loo` |
+| [docs/MLD.md](docs/MLD.md) | Modèle logique de données : 10 tables en notation textuelle et en diagramme `erDiagram`, clés étrangères et contraintes |
+| [docs/cas-utilisation.md](docs/cas-utilisation.md) | Cas d'utilisation : acteurs, diagramme de 18 cas, fiches détaillées (E1, E5, E10, « Mes réservations ») |
 | [Maquette-EscapeOps.pdf](Maquette-EscapeOps.pdf) | Maquette des écrans |
 | [BACKLOG.md](BACKLOG.md) | Tickets par épic et par jour, priorités, critères d'acceptation, avancement |
 | [backlog-notion.csv](backlog-notion.csv) | Le même backlog, à importer dans Notion |
 | [docs/journal.md](docs/journal.md) | Journal de bord quotidien |
 | [starter-kit/docs/API.md](starter-kit/docs/API.md) | Contrat de l'API JSON |
 | [docs/preuves/US-65.md](docs/preuves/US-65.md) | Preuves du SQL avancé : trigger avant/après, CALL, vues et pages qui en dépendent |
-| [docs/preuves/](docs/preuves/) | Captures de preuve : MCD avant/après « Mes réservations », SQL avancé, échanges avec la cliente sur l'évolution EV-TEV-01 (`ev-tev-01/`) |
+| [docs/incidents/INC-TEV-01.md](docs/incidents/INC-TEV-01.md) | Rapport de l'incident imposé INC-TEV-01 (US-72) : qualification, 16 essais, diagnostic, correction, tests · avec le [texte de l'issue de suivi](docs/incidents/INC-TEV-01-issue-suivi.md) et la [réponse à la testeuse](docs/incidents/INC-TEV-01-reponse-testeur.md) |
+| [docs/preuves/](docs/preuves/) | Captures de preuve : MCD avant/après « Mes réservations », SQL avancé, échanges avec la cliente sur l'évolution EV-TEV-01 (`ev-tev-01/`), reproduction de l'incident INC-TEV-01 (`inc-tev-01/`) |
 | [starter-kit/docs/ARCHITECTURE.md](starter-kit/docs/ARCHITECTURE.md) | Architecture du code et trajet d'une requête |
 
 Ressources du cadre de projet : [docs/](docs/) (guides de la semaine), [sujets/](sujets/), [templates/](templates/) (recette, rapport d'incident, démonstration…).
@@ -69,7 +72,9 @@ Ressources du cadre de projet : [docs/](docs/) (guides de la semaine), [sujets/]
 | Mercredi 25 | 6 — Évolution client EV-TEV-01 « checklist et game master obligatoires » (issue #8) : analyse, code, tests | ✅ |
 | Mercredi 25 (après-midi) | 4 — API JSON (US-51 à US-55) : sessions, option E1, confirmation, incidents, contrat documenté | ✅ |
 | Mercredi 25 (soir) | 5 — SQL avancé : 2 vues, procédure `sp_bilan_salle`, trigger `trg_session_history` | ✅ preuves dans [docs/preuves/US-65.md](docs/preuves/US-65.md) |
-| Jeudi 26 | 6 — Incident imposé (US-72) · première extension (E2) | à faire |
+| Jeudi 26 (matin) | Livrables de conception : [MLD](docs/MLD.md) et [cas d'utilisation](docs/cas-utilisation.md) ; README du starter-kit : « Déploiement » et « Limites connues » | ✅ |
+| Jeudi 26 (matin) | 6 — Incident imposé INC-TEV-01 (US-72) « option peut-être confirmée après 15 min » : défaut E1 non reproduit, page de refus et bouton « Libérer » corrigés, écriture durcie, `composer test` vert (15 suites) | ✅ rapport dans [docs/incidents/INC-TEV-01.md](docs/incidents/INC-TEV-01.md) · commit et PR à faire |
+| Jeudi 26 (après-midi) | 8 — Première extension (E2, équipement critique hors service) | à faire |
 | Vendredi 27 | 7 — Livraison et démonstration | à faire |
 
 Détail ticket par ticket : [BACKLOG.md](BACKLOG.md).

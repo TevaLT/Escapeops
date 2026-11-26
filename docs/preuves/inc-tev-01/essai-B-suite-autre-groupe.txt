@@ -1,0 +1,130 @@
+=== Essai B (suite) : un autre groupe (D) sur le même créneau après expiration de B ===
+--- GET /salles/1 (planning public, extrait des créneaux) ---
+HTTP 200
+Prochains créneaux
+CréneauFinDisponibilité
+jeudi 26 novembre · 18 h 00
+19 h 00
+Complet                    
+jeudi 26 novembre · 19 h 20
+20 h 20
+Disponible                    
+Réserver
+vendredi 27 novembre · 10 h 00
+11 h 00
+Complet                    
+vendredi 27 novembre · 12 h 00
+13 h 00
+Disponible                    
+Réserver
+vendredi 27 novembre · 14 h 00
+15 h 00
+En option jusqu'à 09 h 38                    
+--- GET /api/sessions?roomId=1&date=2026-11-26 ---
+[{"id":1,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-26 14:00:00","fin":"2026-11-26 15:00:00","statut":"TERMINEE","disponibilite":"FERME","optionJusqua":null},{"id":2,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-26 18:00:00","fin":"2026-11-26 19:00:00","statut":"PREVUE","disponibilite":"COMPLET","optionJusqua":null},{"id":3,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-26 19:20:00","fin":"2026-11-26 20:20:00","statut":"PREVUE","disponibilite":"LIBRE","optionJusqua":null}]
+--- BDD avant ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:24:50 | 2026-11-26 08:24:50 |
++---------------------+---------------------+
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
+| id | id_session | nom_groupe         | statut     | expires_at          | created_at          | jeton   | etat_calcule       |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
+|  7 |          3 | Groupe B (expiree) | EN_ATTENTE | 2026-11-26 09:23:32 | 2026-11-26 09:08:32 | 7ab4…   | EXPIREE (calculé)  |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+--- POST /api/reservations (groupe D, session 3) ---
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-store
+Location: /api/reservations/2ace…
+
+{"jeton":"2ace…","codeSuivi":"YP..-....","sessionId":3,"salle":"Le Cabinet des Ombres","debut":"2026-11-26 19:20:00","statut":"EN_ATTENTE","expiration":"2026-11-26 09:39:50"}
+
+--- BDD après pose de D ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:24:50 | 2026-11-26 08:24:50 |
++---------------------+---------------------+
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
+| id | id_session | nom_groupe              | statut     | expires_at          | created_at          | jeton   | etat_calcule       |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
+|  7 |          3 | Groupe B (expiree)      | EN_ATTENTE | 2026-11-26 09:23:32 | 2026-11-26 09:08:32 | 7ab4…   | EXPIREE (calculé)  |
+|  8 |          3 | Groupe D (autre groupe) | EN_ATTENTE | 2026-11-26 09:39:50 | 2026-11-26 09:24:50 | 2ace…   | ACTIVE             |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+
+--- GET /salles/1 (planning public, extrait des créneaux) ---
+HTTP 200
+Prochains créneaux
+CréneauFinDisponibilité
+jeudi 26 novembre · 18 h 00
+19 h 00
+Complet                    
+jeudi 26 novembre · 19 h 20
+20 h 20
+En option jusqu'à 09 h 39                    
+vendredi 27 novembre · 10 h 00
+11 h 00
+Complet                    
+vendredi 27 novembre · 12 h 00
+13 h 00
+Disponible                    
+Réserver
+vendredi 27 novembre · 14 h 00
+15 h 00
+En option jusqu'à 09 h 38                    
+--- GET /api/sessions?roomId=1&date=2026-11-26 ---
+[{"id":1,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-26 14:00:00","fin":"2026-11-26 15:00:00","statut":"TERMINEE","disponibilite":"FERME","optionJusqua":null},{"id":2,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-26 18:00:00","fin":"2026-11-26 19:00:00","statut":"PREVUE","disponibilite":"COMPLET","optionJusqua":null},{"id":3,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-26 19:20:00","fin":"2026-11-26 20:20:00","statut":"PREVUE","disponibilite":"EN_OPTION","optionJusqua":"2026-11-26 09:39:50"}]
+--- Groupe E par le formulaire public pendant l'option de D (doit être refusé 409) ---
+POST /sessions/3/reserver -> HTTP/1.1 403 Forbidden ; Location: 
+--- B retente de confirmer après la prise de D : POST /api/reservations/7ab4…/confirmation ---
+HTTP/1.1 409 Conflict
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-store
+
+{"error":"OPTION_EXPIRED","message":"Votre option a expiré à 09 h 23 : la réservation n'est pas confirmée. Si le créneau est encore libre, vous pouvez poser une nouvelle option.","etat":"EXPIREE"}
+
+--- Vérification globale : aucune session avec deux réservations bloquantes ---
+(résultat vide = aucun doublon)
+--- BDD finale session 3 ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:24:52 | 2026-11-26 08:24:52 |
++---------------------+---------------------+
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
+| id | id_session | nom_groupe              | statut     | expires_at          | created_at          | jeton   | etat_calcule       |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
+|  7 |          3 | Groupe B (expiree)      | EN_ATTENTE | 2026-11-26 09:23:32 | 2026-11-26 09:08:32 | 7ab4…   | EXPIREE (calculé)  |
+|  8 |          3 | Groupe D (autre groupe) | EN_ATTENTE | 2026-11-26 09:39:50 | 2026-11-26 09:24:50 | 2ace…   | ACTIVE             |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+

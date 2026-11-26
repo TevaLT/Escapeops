@@ -1,0 +1,68 @@
+=== Affichages annexes pour l'option expirée B (session 3) ===
+--- « Mes réservations » du groupe B (contact b.test@example.test + code de suivi) ---
+POST /mes-reservations/connexion -> HTTP 303 http://127.0.0.1:8081/mes-reservations
+Espace client
+Mes réservations
+Réservations faites avec b.test@example.test
+· 0 partie jouée aux Archives Obscures.
+[]        []Quitter mon espace
+À venir
+Aucune partie prévue. Choisir un créneau
+Historique des parties
+DateSalleGroupeJoueursRésultat
+jeudi 26 novembre · 19 h 20
+Le Cabinet des Ombres
+Groupe B (expiree)
+3
+Option expirée sans confirmation
+Réserver un autre créneau
+
+--- Bouton « Libérer le créneau » sur l'option EXPIRÉE de B, alors que D tient le créneau ---
+--- BDD avant ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:25:59 | 2026-11-26 08:25:59 |
++---------------------+---------------------+
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
+| id | id_session | nom_groupe              | statut     | expires_at          | created_at          | jeton   | etat_calcule       |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
+|  7 |          3 | Groupe B (expiree)      | EN_ATTENTE | 2026-11-26 09:23:32 | 2026-11-26 09:08:32 | 7ab4…   | EXPIREE (calculé)  |
+|  8 |          3 | Groupe D (autre groupe) | EN_ATTENTE | 2026-11-26 09:39:50 | 2026-11-26 09:24:50 | 2ace…   | ACTIVE             |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+
+HTTP/1.1 303 See Other
+Réservation annulée : le créneau est de nouveau proposé aux autres groupes.
+État : Annulée
+--- BDD après ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:25:59 | 2026-11-26 08:25:59 |
++---------------------+---------------------+
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe              | statut     | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------+
+|  7 |          3 | Groupe B (expiree)      | ANNULEE    | 2026-11-26 09:23:32 | 2026-11-26 09:08:32 | 7ab4…   | ANNULEE      |
+|  8 |          3 | Groupe D (autre groupe) | EN_ATTENTE | 2026-11-26 09:39:50 | 2026-11-26 09:24:50 | 2ace…   | ACTIVE       |
++----+------------+-------------------------+------------+---------------------+---------------------+---------+--------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+
+{"id":3,"salleId":1,"salle":"Le Cabinet des Ombres","debut":"2026-11-26 19:20:00","fin":"2026-11-26 20:20:00","statut":"PREVUE","disponibilite":"EN_OPTION","optionJusqua":"2026-11-26 09:39:50"}

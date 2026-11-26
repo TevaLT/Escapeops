@@ -99,7 +99,7 @@ Connexion : http://127.0.0.1:8080/connexion. Un game master accède à `/espace`
 | `GET /sessions/{id}/reserver` · `POST` | Poser une option de 15 minutes pour un groupe (US-23, E1) : 409 si le créneau est pris, en option, passé ou annulé ; 422 si les données sont invalides. Succès → redirection vers la page de suivi |
 | `GET /reservations/{jeton}` | Page de suivi de la réservation (lien secret du groupe, 32 caractères hexadécimaux) : option en cours jusqu'à HH h MM, expirée, confirmée ou annulée |
 | `POST /reservations/{jeton}/confirmer` | Confirmer l'option (E1) : 409 si elle a expiré (US-33), si elle est déjà confirmée ou annulée, ou si la session a été annulée entre-temps |
-| `POST /reservations/{jeton}/annuler` | Libérer l'option ou annuler la réservation tant que la partie n'a pas commencé (409 sinon) |
+| `POST /reservations/{jeton}/annuler` | Libérer l'option ou annuler la réservation tant que la partie n'a pas commencé ; 409 sinon, et aussi pour une option déjà expirée, qui ne garde plus rien (INC-TEV-01) |
 | `GET /mes-reservations` · `POST /mes-reservations/connexion` · `POST /mes-reservations/deconnexion` | « Mes réservations » : le client, **sans compte**, saisit son contact (e-mail ou téléphone) et le **code de suivi** reçu à la pose de l'option, puis voit ses parties à venir et l'historique de ses parties (jouée, annulée, option expirée…) avec le nombre de parties jouées. Même message si le contact ou le code est faux (422), 429 après 5 échecs en 15 min. Aucun droit sur `/espace` ni `/gestion` |
 | `GET /connexion` · `POST /connexion` · `POST /deconnexion` | Connexion et déconnexion du personnel |
 
@@ -183,10 +183,86 @@ composer test
 - `tests/incidents-dashboard.php` : incidents (US-26 : déclarant pris dans la session, équipement et session cohérents avec la salle, résolution réservée), fiches game master (US-24), tableau de bord (US-28 : salle bloquée, en partie, disponible).
 - `tests/api.php` : **API JSON** (US-51 à US-54) à travers la vraie application Slim et `routes/api.php` : filtres de `GET /api/sessions` (422 si mal formés, 404 salle inconnue), informations publiques seulement ; option E1 par `POST /api/reservations` (201 + `Location`, 409 pour le groupe B, 422 par champ, 404, 415, 400) ; confirmation dans le délai, puis hors délai (409 `OPTION_EXPIRED`) et créneau libéré ; `POST /api/incidents` 401 sans connexion, 201 pour le personnel, 422 ; 404 JSON sur une adresse inconnue.
 - `tests/sql-advanced.php` : **SQL avancé** (US-60 à US-63) : une ligne d'historique par changement de statut et aucune sinon, bilan de salle avant et après un contrôle, droits du bilan, planning identique à travers la vue, chiffres de la vue du tableau de bord.
+- `tests/incident-inc-tev-01.php` : **incident INC-TEV-01** (US-72) à travers la vraie application : confirmation d'une option expirée refusée par le site, l'API et un POST forgé, base inchangée ; bornes (1 s avant, pile, 1 s après) ; page de refus explicite (« Réservation non enregistrée : option expirée ») avec la disponibilité réelle du créneau ; pas de bouton « Libérer » ni d'annulation d'une option expirée ; écriture conditionnelle (`changeStatusIf`) quand la ligne change entre la lecture et l'écriture.
 
 Les tests métier utilisent `tests/support/bootstrap.php` : une base SQLite en mémoire au schéma équivalent à `001_schema.sql` (avec les deux vues et une version SQLite du trigger ; la procédure, absente de SQLite, est remplacée par la même requête dans `RoomRepository`), recréée pour chaque fichier. Les vrais services et repositories tournent dessus, sans MySQL.
 
 La CI GitHub Actions (`.github/workflows/starter-kit-check.yml`) lance les tests, reconstruit la base et vérifie les routes.
+
+## Déploiement
+
+Le déploiement prévu est un **lancement local** (cahier des charges, § 8) : il n'y a pas de serveur de production. Les étapes de base sont celles de la section [Installation](#installation). Cette section en donne le détail.
+
+**Prérequis**
+
+| Élément | Version | Vérifié par |
+|---|---|---|
+| PHP | 8.2 ou plus (la CI utilise 8.3), extensions `pdo_mysql` et `mbstring` | `composer.json` (`require`) |
+| Composer | 2 | `composer install` |
+| MySQL | 8.4 (image Docker `mysql:8.4`, conteneur `escapeops-db`) | la CI utilise la même image |
+
+**Variables d'environnement** : copier `.env.example` en `.env`, puis l'adapter. `.env` est ignoré par Git (`.gitignore` : `/.env`, `/.env.*`), et il ne doit **jamais** être commité. Seul `.env.example`, qui contient les valeurs de développement, est versionné.
+
+| Variable | Valeur de développement | Rôle |
+|---|---|---|
+| `APP_ENV` / `APP_DEBUG` | `dev` / `true` | `APP_DEBUG=true` affiche le détail des erreurs : le mettre à `false` hors du poste de développement |
+| `APP_TIMEZONE` | `Europe/Paris` | Fuseau de PHP **et** de la connexion MySQL (`SET time_zone`, dans `DatabaseFactory` et `bin/db-reset.php`) |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_CHARSET` | `127.0.0.1`, `3306`, `escapeops`, `escapeops`, `escapeops`, `utf8mb4` | Connexion à MySQL |
+
+**Base de données** : `composer db:reset` (`bin/db-reset.php`) supprime les vues, procédures et tables, applique `database/migrations/001` à `004` dans l'ordre des numéros, puis charge `database/seed.sql`. La base est donc reconstructible sur une base vierge à partir des seuls scripts versionnés. ⚠ La commande **efface toutes les données** : il n'y a pas de migration incrémentale qui conserve les données.
+
+Le trigger de `004_triggers.sql` exige `log_bin_trust_function_creators = 1` (sinon erreur 1419, voir [Installation](#installation)). La CI applique ce réglage avec `SET GLOBAL` avant `db:reset`.
+
+**Lancement** : `composer serve` démarre le serveur intégré de PHP sur `127.0.0.1:8080`, avec `public/` pour racine et `public/router.php` comme routeur. Seul `public/` est exposé : `src/`, `config/`, `.env` et `database/` restent hors de la racine web.
+
+**Mise à jour** : `git pull`, `composer install`, puis `composer db:reset` si un script de `database/migrations/` a changé. Avant cette commande, faire une sauvegarde (ci-dessous), car elle efface les données.
+
+**Intégration continue** : à chaque push ou pull request qui touche `starter-kit/`, `.github/workflows/starter-kit-check.yml` valide `composer.json`, vérifie la syntaxe PHP, lance `composer test`, reconstruit la base sur un vrai MySQL 8.4, appelle les routes HTML et API avec `curl`, puis contrôle les 2 vues, la procédure et le trigger.
+
+### Sauvegarde et restauration
+
+Les sauvegardes vont dans `backups/`, ignoré par Git (une sauvegarde contient des données). Les commandes passent par un fichier **dans le conteneur**, puis `docker cp`. Elles fonctionnent ainsi dans Git Bash comme dans PowerShell : sous PowerShell 5.1, une redirection `>` réécrirait le fichier en UTF-16. `--routines` et `--triggers` sauvegardent la procédure et le trigger (les vues sont incluses d'office), et `--default-character-set=utf8mb4` évite que les accents passent en latin1.
+
+```bash
+# Sauvegarde (depuis starter-kit/)
+mkdir -p backups                         # PowerShell : New-Item -ItemType Directory -Force backups
+docker exec escapeops-db sh -c "mysqldump -uescapeops -pescapeops --default-character-set=utf8mb4 --single-transaction --no-tablespaces --routines --triggers --databases escapeops > /tmp/escapeops.sql"
+docker cp escapeops-db:/tmp/escapeops.sql backups/escapeops.sql
+```
+
+```bash
+# Restauration sur une base vierge (mot de passe root : rootpass)
+docker exec -it escapeops-db mysql -uroot -p -e "DROP DATABASE IF EXISTS escapeops"
+docker cp backups/escapeops.sql escapeops-db:/tmp/escapeops.sql
+docker exec -it escapeops-db sh -c "mysql -uroot -p --default-character-set=utf8mb4 < /tmp/escapeops.sql"
+
+# Vérification : 2 vues, la procédure et le trigger sont revenus
+docker exec escapeops-db mysql -uescapeops -pescapeops escapeops -e "SELECT COUNT(*) AS vues FROM information_schema.VIEWS WHERE TABLE_SCHEMA = 'escapeops'; SHOW PROCEDURE STATUS WHERE Db = 'escapeops'; SHOW TRIGGERS"
+```
+
+Avec `--databases`, le fichier recrée lui-même la base (`CREATE DATABASE IF NOT EXISTS` puis `USE escapeops`). Les droits du compte `escapeops`, définis au niveau de la base, ne sont pas supprimés par `DROP DATABASE`. Le conteneur doit avoir le réglage `log_bin_trust_function_creators`, comme pour `db:reset`. Après la restauration, relancer `composer serve`, puis vérifier la vitrine, le planning et la connexion d'un compte de test.
+
+> **État au 26/11 :** la commande de sauvegarde a produit un fichier qui contient bien le trigger, la procédure et les vues. Le **test complet de restauration** (base supprimée, restauration, application vérifiée) n'est **pas encore fait**. Il est prévu vendredi (US-82) et sera documenté dans `docs/journal.md`.
+
+### Livraison
+
+La version livrée portera le tag Git `v1.0` (US-84, vendredi après-midi), créé sur la version démontrée, après la recette (US-80) et la revue de sécurité (US-81). **Ce tag n'existe pas encore.**
+
+## Limites connues
+
+- **Serveur de développement** : `composer serve` utilise le serveur intégré de PHP, qui traite une requête à la fois et n'est pas fait pour la production. Il n'y a ni Apache, ni Nginx, ni hébergement en ligne.
+- **Pas de HTTPS** : l'application tourne en `http://127.0.0.1:8080`. Le cookie de session n'est marqué `Secure` que sous HTTPS (`SessionMiddleware`), donc pas en local.
+- **Identifiants de développement** publiés (`.env.example`, comptes de test, `rootpass`) et `APP_DEBUG=true` par défaut. Ils sont à changer avant toute mise en ligne.
+- **Extensions non réalisées** : E2 (équipement critique hors service), E6 (partie interrompue) et E9 (contrôle à prévoir). Seuls leurs supports existent : le statut `INTERROMPUE` (sans transition, `SessionStatus`), le statut d'équipement `HORS_SERVICE` affiché, et dans `sp_bilan_salle` le compteur « parties depuis le dernier contrôle » (sans badge `CONTROLE_A_PREVOIR`).
+- **Pas de changement de mot de passe** : un game master ne peut pas changer son mot de passe, et il n'existe pas de « mot de passe oublié ». Le mot de passe initial est transmis de vive voix.
+- **Aucun e-mail envoyé** : le code de suivi et le lien de la réservation ne sont affichés qu'à l'écran, sur la page de suivi.
+- **Limite d'essais de « Mes réservations »** : les 5 échecs par 15 minutes sont comptés **par session PHP**, pas par adresse IP. Un attaquant qui change de cookie repart à zéro. Ce choix reste acceptable vu la taille du code (31^8 combinaisons) ; une limite par IP serait l'étape suivante.
+- **Expiration des options (E1)** : elle est calculée à chaque requête, sans tâche planifiée, et **n'est jamais écrite en base** : une option expirée reste `EN_ATTENTE` pour toujours. Elle ne peut plus être ni confirmée ni libérée (409, incident INC-TEV-01), mais toute nouvelle requête ou tout nouvel écran qui filtre sur `statut = 'EN_ATTENTE'` doit aussi comparer `date_expiration` à l'heure courante (comme `ReservationOption` et la vue `v_planning_detaille`), sinon il afficherait une option en cours à tort.
+- **Pas de `Cache-Control` sur la vitrine** : `/` et `/salles/{id}` n'envoient pas `no-store`, contrairement à la page de suivi, à « Mes réservations » et à l'API. Un navigateur (un téléphone, par exemple) peut donc réafficher un planning périmé, avec un créneau vu libre ou en option à tort. Le serveur revérifie toujours à la réservation (409). Noté hors périmètre dans l'incident INC-TEV-01.
+- **Session PHP de 24 minutes** : au-delà de `session.gc_maxlifetime` (1 440 s), la session peut être effacée ; un formulaire resté ouvert reçoit alors le 403 générique « Le formulaire a expiré ou ne provient pas de ce site », moins clair qu'un refus métier.
+- **Heures dans le client `mysql`** : une requête lancée à la main dans le client `mysql` tourne en UTC (une heure de moins en novembre). Un `UPDATE` de statut y date donc l'historique du trigger en UTC. Depuis l'application, la connexion est en Europe/Paris. Pour lire les accents dans ce client, ajouter `--default-character-set=utf8mb4`.
+- **`composer db:reset` est destructif** : il n'y a pas de migration incrémentale, et une mise à jour du schéma efface les données (faire d'abord une sauvegarde).
+- **Tests métier sur SQLite** : `composer test` tourne sur une base SQLite en mémoire. La procédure y est remplacée par la même requête en PHP. Seule la CI vérifie la vraie procédure et le vrai trigger sur MySQL.
 
 ## Organisation du code
 

@@ -1,0 +1,180 @@
+=== Essai B : option expirée (session 3, aujourd'hui 19 h 20) ===
+--- BDD avant ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:24:30 | 2026-11-26 08:24:30 |
++---------------------+---------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+POST /sessions/3/reserver -> HTTP/1.1 303 See Other ; Location: /reservations/7ab4…
+--- GET /reservations/7ab4… (onglet ouvert, formulaire Confirmer chargé) 09:24:31 ---
+HTTP 200
+Option posée pour « Groupe B (expiree) » jusqu'à 09 h 39. Confirmez-la avant cette heure, sinon le créneau sera libéré. Votre code de suivi : 9V..-.....
+← Le Cabinet des Ombres
+Ma réservation
+Le Cabinet des Ombres
+jeudi 26 novembre · 19 h 20 → 20 h 20
+Groupe : Groupe B (expiree) (3 joueurs)
+État : Option en cours
+Code de suivi : 9V..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+Le créneau vous est gardé jusqu'à 09 h 39. Passé cette heure, l'option expire et le créneau est rendu aux autres groupes.
+[]                []Confirmer la réservation
+[]                []Libérer le créneau
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.
+--- BDD après pose ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:24:32 | 2026-11-26 08:24:32 |
++---------------------+---------------------+
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------+
+| id | id_session | nom_groupe         | statut     | expires_at          | created_at          | jeton   | etat_calcule |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------+
+|  7 |          3 | Groupe B (expiree) | EN_ATTENTE | 2026-11-26 09:39:31 | 2026-11-26 09:24:31 | 7ab4…   | ACTIVE       |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             1 |
++---------------+
+--- Vieillissement (requête exacte exécutée dans le client mysql) ---
+SET time_zone='Europe/Paris'; UPDATE reservation SET date_creation = NOW() - INTERVAL 16 MINUTE, date_expiration = NOW() - INTERVAL 1 MINUTE WHERE id_reservation = 7 AND statut = 'EN_ATTENTE';
++------------------+
+| lignes_modifiees |
++------------------+
+|                1 |
++------------------+
+--- BDD après vieillissement ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:24:32 | 2026-11-26 08:24:32 |
++---------------------+---------------------+
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
+| id | id_session | nom_groupe         | statut     | expires_at          | created_at          | jeton   | etat_calcule       |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
+|  7 |          3 | Groupe B (expiree) | EN_ATTENTE | 2026-11-26 09:23:32 | 2026-11-26 09:08:32 | 7ab4…   | EXPIREE (calculé)  |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+--- (a) POST /reservations/7ab4…/confirmer depuis l'onglet ancien (cookie + jeton CSRF de l'onglet) 09:24:32 ---
+HTTP/1.1 409 Conflict
+Content-Type: text/html; charset=utf-8
+Referrer-Policy: no-referrer
+Cache-Control: no-store
+
+[titre de la page] Ma réservation · Le Cabinet des Ombres · Les Archives Obscures
+← Le Cabinet des Ombres
+Ma réservation
+Le Cabinet des Ombres
+jeudi 26 novembre · 19 h 20 → 20 h 20
+Groupe : Groupe B (expiree) (3 joueurs)
+État : Option expirée
+Code de suivi : 9V..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+Votre option a expiré à 09 h 23 : la réservation n'est pas confirmée. Si le créneau est encore libre, vous pouvez poser une nouvelle option.
+Votre option a expiré à 09 h 23 sans être confirmée : le créneau n'est plus gardé pour vous.
+Voir les créneaux disponibles
+[]                []Libérer le créneau
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.
+--- BDD après (a) ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:24:33 | 2026-11-26 08:24:33 |
++---------------------+---------------------+
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
+| id | id_session | nom_groupe         | statut     | expires_at          | created_at          | jeton   | etat_calcule       |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
+|  7 |          3 | Groupe B (expiree) | EN_ATTENTE | 2026-11-26 09:23:32 | 2026-11-26 09:08:32 | 7ab4…   | EXPIREE (calculé)  |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+--- (b1) POST /api/reservations/7ab4…/confirmation (HTTP direct, sans corps) ---
+HTTP/1.1 409 Conflict
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-store
+
+{"error":"OPTION_EXPIRED","message":"Votre option a expiré à 09 h 23 : la réservation n'est pas confirmée. Si le créneau est encore libre, vous pouvez poser une nouvelle option.","etat":"EXPIREE"}
+
+--- (b2) POST de formulaire forgé sans session ni _csrf ---
+HTTP 403 redirect=
+Requête refusée
+Le formulaire a expiré ou ne provient pas de ce site. Rechargez la page et recommencez.
+Retour aux salles
+--- (b3) POST de formulaire forgé : nouvelle session, jeton CSRF pris sur /salles/1 (pas sur la page de l'option) ---
+HTTP/1.1 409 Conflict
+Content-Type: text/html; charset=utf-8
+Referrer-Policy: no-referrer
+Cache-Control: no-store
+
+Groupe : Groupe B (expiree) (3 joueurs)
+État : Option expirée
+Votre option a expiré à 09 h 23 : la réservation n'est pas confirmée. Si le créneau est encore libre, vous pouvez poser une nouvelle option.
+Votre option a expiré à 09 h 23 sans être confirmée : le créneau n'est plus gardé pour vous.
+--- BDD après (b) ---
++---------------------+---------------------+
+| now_paris           | now_utc             |
++---------------------+---------------------+
+| 2026-11-26 09:24:34 | 2026-11-26 08:24:34 |
++---------------------+---------------------+
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
+| id | id_session | nom_groupe         | statut     | expires_at          | created_at          | jeton   | etat_calcule       |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
+|  7 |          3 | Groupe B (expiree) | EN_ATTENTE | 2026-11-26 09:23:32 | 2026-11-26 09:08:32 | 7ab4…   | EXPIREE (calculé)  |
++----+------------+--------------------+------------+---------------------+---------------------+---------+--------------------+
++------------+---------------------+---------------------+--------+
+| id_session | date_debut          | date_fin            | statut |
++------------+---------------------+---------------------+--------+
+|          3 | 2026-11-26 19:20:00 | 2026-11-26 20:20:00 | PREVUE |
++------------+---------------------+---------------------+--------+
++---------------+
+| nb_bloquantes |
++---------------+
+|             0 |
++---------------+
+--- GET /reservations/7ab4… (rafraîchissement de l'onglet) ---
+HTTP 200
+← Le Cabinet des Ombres
+Ma réservation
+Le Cabinet des Ombres
+jeudi 26 novembre · 19 h 20 → 20 h 20
+Groupe : Groupe B (expiree) (3 joueurs)
+État : Option expirée
+Code de suivi : 9V..-....
+Notez ce code : avec votre e-mail ou téléphone, il vous permet de retrouver toutes vos réservations sur Mes réservations.
+Votre option a expiré à 09 h 23 sans être confirmée : le créneau n'est plus gardé pour vous.
+Voir les créneaux disponibles
+[]                []Libérer le créneau
+Gardez l'adresse de cette page : c'est votre lien personnel pour suivre la réservation.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Domain\NotFoundException;
+use App\Domain\ReservationOption;
 use App\Domain\ReservationStateException;
 use App\Domain\SlotUnavailableException;
 use App\Domain\TrackingCode;
@@ -82,7 +83,7 @@ final class ReservationController
             return $this->notFound($response, 'Réservation');
         } catch (ReservationStateException $exception) {
             // 409 : option expirée (US-33), déjà confirmée, annulée, ou session fermée.
-            return $this->renderShow($response, $token, $exception->getMessage(), 409);
+            return $this->renderShow($response, $token, $exception->getMessage(), 409, self::refusalTitle('confirmer', $exception->state));
         }
 
         $this->flash->success(sprintf(
@@ -103,7 +104,8 @@ final class ReservationController
         } catch (NotFoundException) {
             return $this->notFound($response, 'Réservation');
         } catch (ReservationStateException $exception) {
-            return $this->renderShow($response, $token, $exception->getMessage(), 409);
+            // 409 : option expirée (rien à libérer), déjà annulée, partie commencée, ou modifiée entre-temps.
+            return $this->renderShow($response, $token, $exception->getMessage(), 409, self::refusalTitle('annuler', $exception->state));
         }
 
         $this->flash->success('Réservation annulée : le créneau est de nouveau proposé aux autres groupes.');
@@ -111,7 +113,25 @@ final class ReservationController
         return $this->redirect($response, '/reservations/' . $token);
     }
 
-    private function renderShow(ResponseInterface $response, string $token, ?string $error = null, int $status = 200): ResponseInterface
+    /**
+     * Titre (onglet et page) d'un refus : il dit tout de suite que rien n'a été fait, et pourquoi.
+     */
+    private static function refusalTitle(string $action, string $state): string
+    {
+        if ($action === 'annuler') {
+            return $state === ReservationOption::EXPIREE ? 'Annulation refusée : option expirée' : 'Annulation refusée';
+        }
+
+        return match ($state) {
+            ReservationOption::EXPIREE => 'Réservation non enregistrée : option expirée',
+            ReservationOption::CONFIRMEE => 'Réservation déjà confirmée',
+            ReservationOption::ANNULEE => 'Réservation non enregistrée : réservation annulée',
+            ReservationStateException::CONFLIT => 'Réservation non enregistrée',
+            default => 'Réservation non enregistrée : créneau indisponible',
+        };
+    }
+
+    private function renderShow(ResponseInterface $response, string $token, ?string $error = null, int $status = 200, ?string $refusal = null): ResponseInterface
     {
         $reservation = $this->service->byToken($token);
         if ($reservation === null) {
@@ -123,6 +143,7 @@ final class ReservationController
         return $this->renderer->render($response, 'reservations/show', [
             'reservation' => $reservation,
             'erreur' => $error,
+            'titreRefus' => $refusal,
         ], $status)
             ->withHeader('Referrer-Policy', 'no-referrer')
             ->withHeader('Cache-Control', 'no-store');

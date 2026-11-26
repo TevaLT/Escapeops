@@ -36,7 +36,8 @@
       "php tests/rooms-equipment.php",
       "php tests/incidents-dashboard.php",
       "php tests/api.php",
-      "php tests/sql-advanced.php"
+      "php tests/sql-advanced.php",
+      "php tests/incident-inc-tev-01.php"
     ]
   }
 }

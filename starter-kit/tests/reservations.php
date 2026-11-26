@@ -121,6 +121,10 @@ check('US-32 page de suivi : option expirée, plus confirmable', [ReservationOpt
 check('US-33 confirmation après expiration refusée', ReservationOption::EXPIREE, stateRefusal(fn () => $service->confirm($late['jeton'])));
 check('US-33 l\'option ne passe pas en CONFIRMEE', 'EN_ATTENTE', $statusOf($late['jeton']));
 check('US-33 message explicite avec l\'heure d\'expiration', true, str_starts_with(refusalMessage(fn () => $service->confirm($late['jeton'])), 'Votre option a expiré à 13 h 15'));
+check('INC-TEV-01 option expirée : plus de « Libérer le créneau »', false, $service->byToken($late['jeton'])['peut_annuler']);
+check('INC-TEV-01 option expirée : annulation refusée, ligne inchangée', [ReservationOption::EXPIREE, 'EN_ATTENTE'],
+    [stateRefusal(fn () => $service->cancel($late['jeton'])), $statusOf($late['jeton'])]);
+check('INC-TEV-01 page de suivi : disponibilité réelle du créneau (libre)', SlotAvailability::LIBRE, $service->byToken($late['jeton'])['creneau']['disponibilite'] ?? null);
 $optionB = $service->placeOption($slot2, $group(['nom_groupe' => 'Groupe B']));
 check('US-32 le groupe B peut poser une option après l\'expiration', 'EN_ATTENTE', $statusOf($optionB['jeton']));
 check('US-33 A toujours refusé quand B a repris le créneau', ReservationOption::EXPIREE, stateRefusal(fn () => $service->confirm($late['jeton'])));

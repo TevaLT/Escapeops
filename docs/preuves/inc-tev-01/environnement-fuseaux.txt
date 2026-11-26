@@ -1,0 +1,41 @@
+=== Fuseaux : client mysql par défaut vs connexion de l'application ===
+--- Client mysql SANS réglage (comme une requête manuelle) ---
++---------------------+------------+-----------+------------+---------------------+
+| now_client          | tz_session | tz_global | tz_systeme | NOW()+10 min (UTC)  |
++---------------------+------------+-----------+------------+---------------------+
+| 2026-11-26 08:26:13 | SYSTEM     | SYSTEM    | UTC        | 2026-11-26 08:36:13 |
++---------------------+------------+-----------+------------+---------------------+
+--- Même client APRÈS SET time_zone='Europe/Paris' (réglage appliqué par DatabaseFactory à la connexion de l'application) ---
++---------------------+--------------+----------------------+
+| now_paris           | tz_session   | NOW()+10 min (Paris) |
++---------------------+--------------+----------------------+
+| 2026-11-26 09:26:13 | Europe/Paris | 2026-11-26 09:36:13  |
++---------------------+--------------+----------------------+
+--- Dernière valeur écrite par l'application (date_creation de l'option de D, posée via l'API) ---
++----------------+---------------------+---------------------+
+| id_reservation | date_creation       | date_expiration     |
++----------------+---------------------+---------------------+
+|              8 | 2026-11-26 09:24:50 | 2026-11-26 09:39:50 |
++----------------+---------------------+---------------------+
+
+Lecture : l'application écrit des DATETIME en heure de Paris (UTC+1 en novembre).
+Un UPDATE ... = NOW() + INTERVAL 10 MINUTE lancé SANS SET time_zone écrirait une heure UTC,
+que l'application lirait comme heure de Paris : l'option paraîtrait expirée depuis ~50 min.
+Toutes les requêtes de vieillissement de ces preuves commencent donc par SET time_zone='Europe/Paris'.
+
+--- Versions ---
+PHP 8.5.11 (cli) (built: Sep 22 2026 13:50:46) (ZTS Visual C++ 2022 x64)
+PHP CLI date.timezone par défaut : UTC (l application force APP_TIMEZONE=Europe/Paris)
+mysql  Ver 8.4.13 for Linux on x86_64 (MySQL Community Server - GPL)
+Conteneur escapeops-db : mysql:8.4 (Up 2 days)
+session.gc_maxlifetime PHP : 1440 s
+Commit testé : 241987b (branche docs/preuves-ev-tev-01)
+Fichiers modifiés non commités au moment des essais (src/ peut être modifié en parallèle par un autre agent) :
+ M starter-kit/README.md
+ M starter-kit/composer.json
+?? .mcp.json
+?? docs/MLD.md
+?? docs/cas-utilisation.md
+?? docs/preuves/inc-tev-01/
+?? starter-kit/tests/incident-inc-tev-01.php
+Horloge Windows : 2026-11-26 09:26:14     / UTC 08:26:14

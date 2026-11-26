@@ -374,3 +374,47 @@ Git : PR #1, #2, #3 fusionnées ; branche docs/preuves-ev-tev-01 poussée
 Notion : doublons supprimés, 68 tickets (52 faits, 16 à faire)
 Demain : fusionner la PR, fermer l'issue #8, incident US-72, puis extension E2 ou E9
 ```
+
+## Jeudi 26 novembre 2026
+
+### Jeudi 26/11 — matin
+
+```text
+Réalisé :
+  - PR docs/preuves-ev-tev-01 fusionnée (#5) ; issue #8 (EV-TEV-01) fermée
+  - Livrables : docs/MLD.md (10 tables, notation textuelle + erDiagram) ; docs/cas-utilisation.md
+    (acteurs, diagramme de 18 cas, 4 fiches : E1, E5, E10, « Mes réservations ») ;
+    starter-kit/README.md : sections « Déploiement » et « Limites connues »
+  - Incident imposé INC-TEV-01 (US-72), issue #13 du dépôt de l'enseignant :
+    « option peut-être confirmée après 15 min » (E1)
+      · qualifié selon le protocole : analyse statique, puis 16 essais sur MySQL (interface avec onglet ancien,
+        API, formulaires forgés, bornes à la seconde), dont un onglet resté ouvert 15 min 20 s sans aucun SQL
+      · défaut E1 NON reproduit : 409 à chaque fois, base inchangée, créneau bien libéré (autre groupe 201)
+      · cause probable du signalement : la page de refus ressemblait à une confirmation (même titre,
+        récapitulatif, code de suivi), et « Libérer le créneau » restait affiché sur une option expirée,
+        avec un message faux (« le créneau est de nouveau proposé » alors qu'un autre groupe le tenait)
+      · corrigé : (1) page de refus explicite, titre « Réservation non enregistrée : option expirée »,
+        un message unique, disponibilité réelle du créneau calculée par le service (slotAfterExpiry) ;
+        (2) bouton masqué, annulation d'une option expirée refusée en 409 côté serveur ;
+        (3) durcissement : UPDATE conditionnel changeStatusIf + rowCount, relecture en FOR UPDATE
+      · rapport docs/incidents/INC-TEV-01.md, texte de l'issue de suivi et réponse à la testeuse
+        dans le même dossier ; preuves docs/preuves/inc-tev-01/
+Non terminé :
+  - commit et PR fix/inc-tev-01, création de l'issue de suivi, réponse sur #13
+Problèmes rencontrés :
+  - sous Windows, curl n'envoie pas en UTF-8 un nom de groupe accentué passé en argument
+    (« Groupe B (expirée) » → 422 « Indiquez le nom de votre groupe ») : noms écrits sans accent dans les essais
+  - le client mysql tourne en UTC (NOW() = 08:26 quand l'application est à 09:26) : pour vieillir une option,
+    SET time_zone = 'Europe/Paris' d'abord, sinon elle paraîtrait expirée une heure trop tôt
+Décisions importantes :
+  - une option expirée qu'on tente de « libérer » reçoit un 409 plutôt qu'une annulation silencieuse :
+    elle ne garde déjà plus rien, et la passer à ANNULEE effacerait qu'elle a expiré (historique, « Mes réservations »)
+  - le titre de la page de refus dit d'abord que rien n'a été fait, et pourquoi ; le nom de la salle passe en dessous
+  - le correctif ne touche pas à la règle E1 elle-même : l'expiration reste calculée, jamais écrite en base
+Tests effectués :
+  - tests/incident-inc-tev-01.php (nouveau, 92 vérifications) : 33 échecs sur l'ancien code (241987b), vert après
+  - tests/reservations.php : 3 vérifications ajoutées, 4 échecs avant, vert après
+  - composer test : 15 suites vertes, 0 échec ; E1, E5 et E10 inchangés
+  - vérification MySQL 8.4 après correction : 6 scénarios conformes, dont 2 confirmations simultanées → 1 seule CONFIRMEE (voir apres-correction.md)
+Reste : commit + PR fix/inc-tev-01, issue de suivi, réponse sur #13, puis extension E2 cet après-midi
+```
